@@ -30,6 +30,7 @@ cat > "$APP/Contents/Info.plist" <<PL
 <key>CFBundleVersion</key><string>$V</string>
 <key>LSMinimumSystemVersion</key><string>14.0</string>
 <key>NSHighResolutionCapable</key><true/>
+<key>LSUIElement</key><true/>
 </dict></plist>
 PL
 codesign --force -s "Mantra Apps" "$APP"

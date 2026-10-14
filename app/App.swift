@@ -1,12 +1,13 @@
 // Speechify Splash Closer (Mantra): Speechify's menu-bar app opens its Home window at every launch and has no setting
 // to stop it. This closes that window through its accessibility close button: at start, and for 30 s after every
 // launch of Speechify, so the app lives in the menu bar only. Replaces MANTRA_STAR apps/speechify.lua (Marko,
-// 13.10.2026: "no more Lua, only Swift"). The window shows the last close and a CLOSE IT NOW.
+// 13.10.2026: "no more Lua, only Swift"). The window shows the last close and a CLOSE IT NOW. v2 (14.10.2026): no Dock icon,
+// silent at login (Star (Mantra) v4 opens it hidden).
 import SwiftUI
 import AppKit
 import ApplicationServices
 
-let VERSION = 1
+let VERSION = 2
 let RELEASES = "https://github.com/markoboskoauroville/SPEECHIFY_SPLASH_CLOSER/releases/latest"
 let BUNDLE = "com.cliffweitzman.speechifymacagent"
 let WATCH_FOR: TimeInterval = 30
@@ -24,7 +25,8 @@ final class Closer: ObservableObject {
     @Published var said = ""
     private var hunt: Timer?
     init() {
-        _ = AXIsProcessTrustedWithOptions([kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true] as CFDictionary)
+        // v2: at login (the star passes --login) no Accessibility dialog: the window says it when he opens it
+        _ = AXIsProcessTrustedWithOptions([kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: !CommandLine.arguments.contains("--login")] as CFDictionary)
         NSWorkspace.shared.notificationCenter.addObserver(forName: NSWorkspace.didLaunchApplicationNotification, object: nil, queue: .main) { [weak self] n in
             if (n.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication)?.bundleIdentifier == BUNDLE { self?.huntStart() }
         }
