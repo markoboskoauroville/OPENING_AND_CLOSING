@@ -12,3 +12,13 @@ The star's apps/speechify.lua (Hammerspoon) becomes "Speechify Splash Closer (Ma
 - The closer did not run at login: its key fell out of star-running.json when the star moved to Swift (13.10.2026),
   so nothing closed Speechify's Home window. Put back; Star (Mantra) v4 brings it back hidden. v2: no Dock icon
   (LSUIElement), so a login shows nothing of it. — **Status:** done 14.10.2026
+
+## 19.10.2026: ON / OFF at the top of the window, ✕ at the far upper right
+
+> "When I select any of the apps, the user interface opens up. In the top of every user interface, there will now be an on/off switch ... If I say on, I close it's on ... When I just switch the check mark, and that's how I activate it. This is gone. Let's work like this. This is the workflow now." (Marko, 19.10.2026)
+
+> "please unify the position of the close button on every application. It's far upper right corner. There is X to close the dialog in every dialog, same." (Marko, 19.10.2026)
+
+The first row of the window is SPEECHIFY SPLASH CLOSER ON / OFF with ✕ at the far right. OFF stops the watching and quits; ✕ closes the window only, the closer goes on working, and the star's open brings the window back. `--login` starts it with no window (MANTRA_MANIFEST modules/swift-apps.md, 19.10.2026).
+
+**Status:** requested.
