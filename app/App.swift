@@ -7,7 +7,7 @@ import SwiftUI
 import AppKit
 import ApplicationServices
 
-let VERSION = 2
+let VERSION = 3
 let RELEASES = "https://github.com/markoboskoauroville/SPEECHIFY_SPLASH_CLOSER/releases/latest"
 let BUNDLE = "com.cliffweitzman.speechifymacagent"
 let WATCH_FOR: TimeInterval = 30
@@ -45,6 +45,12 @@ final class Closer: ObservableObject {
         if n > 0 { last = Date() }
         return n
     }
+    // OFF (19.10.2026): the watching stops, then the app quits
+    func off() {
+        hunt?.invalidate(); hunt = nil
+        NSWorkspace.shared.notificationCenter.removeObserver(self)
+        NSApp.terminate(nil)
+    }
     func huntStart() {
         hunt?.invalidate()
         let until = Date().addingTimeInterval(WATCH_FOR)
@@ -63,10 +69,39 @@ struct Word: View {
     }
 }
 
+// ✕, the window's close at its far upper-right corner (Marko, 19.10.2026: "please unify the position of the close
+// button on every application. It's far upper right corner. There is X to close the dialog in every dialog, same").
+// It closes the window only; the closer goes on working.
+struct CloseX: View {
+    @State private var window: NSWindow?
+    var body: some View {
+        Image(systemName: "xmark").font(.system(size: 14, weight: .bold)).foregroundColor(GREY)
+            .frame(width: 28, height: 28).contentShape(Rectangle())
+            .background(WindowReader { window = $0 })
+            .onTapGesture { (window ?? NSApp.keyWindow)?.performClose(nil) }
+            .help("close this window; the closer goes on working")
+    }
+}
+struct WindowReader: NSViewRepresentable {
+    let found: (NSWindow?) -> Void
+    func makeNSView(context: Context) -> NSView { let v = NSView(); DispatchQueue.main.async { found(v.window) }; return v }
+    func updateNSView(_ v: NSView, context: Context) {}
+}
+
 struct CloserView: View {
     @ObservedObject var c: Closer
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
+            // the first row: the closer ON / OFF, ✕ at the far right (Marko, 19.10.2026: "In the top of every user
+            // interface, there will now be an on/off switch"). Running is ON; OFF stops the watching and quits.
+            HStack(spacing: 0) {
+                Text("SPEECHIFY SPLASH CLOSER").font(.system(size: 10, weight: .bold, design: .monospaced)).foregroundColor(GREY).padding(.trailing, 6)
+                Word(text: "ON", on: true) {}
+                Word(text: "OFF", on: false) { c.off() }
+                Spacer()
+                Text("v\(VERSION)").font(.system(size: 11, design: .monospaced)).foregroundColor(GREY).padding(.trailing, 8)
+                CloseX()
+            }.padding(.trailing, -14).padding(.top, -10)
             HStack {
                 Text("SPEECHIFY'S HOME WINDOW").font(.system(size: 10, weight: .bold, design: .monospaced)).foregroundColor(GREY)
                 Spacer()
@@ -90,9 +125,22 @@ struct CloserView: View {
     }
 }
 
-// an engine that lives on with its window closed: the star quits it; reopening shows the window again
+// an engine that lives on with its window closed: OFF in the window quits it (19.10.2026: the star only opens);
+// the star's open (a reopen) shows the window again, a new one from the WindowGroup if it was closed. At login
+// (--login) it starts with no window.
 final class Delegate: NSObject, NSApplicationDelegate {
     func applicationShouldTerminateAfterLastWindowClosed(_ s: NSApplication) -> Bool { false }
+    func applicationDidFinishLaunching(_ n: Notification) {
+        if CommandLine.arguments.contains("--login") {
+            // the WindowGroup makes its window a moment after launch: close it then
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { NSApp.windows.filter { $0.styleMask.contains(.titled) }.forEach { $0.close() } }
+        }
+    }
+    func applicationShouldHandleReopen(_ s: NSApplication, hasVisibleWindows: Bool) -> Bool {
+        s.unhide(nil); s.activate(ignoringOtherApps: true)   // no Dock icon (LSUIElement): bring it forward ourselves
+        if !hasVisibleWindows, let w = s.windows.first(where: { $0.isMiniaturized }) { w.deminiaturize(nil); return false }
+        return true
+    }
 }
 
 @main struct SpeechifySplashCloser: App {

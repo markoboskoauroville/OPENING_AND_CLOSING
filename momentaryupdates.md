@@ -21,4 +21,4 @@ The star's apps/speechify.lua (Hammerspoon) becomes "Speechify Splash Closer (Ma
 
 The first row of the window is SPEECHIFY SPLASH CLOSER ON / OFF with ✕ at the far right. OFF stops the watching and quits; ✕ closes the window only, the closer goes on working, and the star's open brings the window back. `--login` starts it with no window (MANTRA_MANIFEST modules/swift-apps.md, 19.10.2026).
 
-**Status:** requested.
+**Status:** v3 19.10.2026: first row SPEECHIFY SPLASH CLOSER, ON (green while it runs), OFF (grey; stops the hunt timer and the launch observer, then `NSApp.terminate`), the version, ✕ (SF Symbol xmark, grey, 28×28) at the far right, closing the window only. `--login` now starts with no window (before: a hidden one); the reopen unhides, activates and makes the window again. Restarted: pid 789 → 43167, started as before (`open -j … --args --login`), no window; `open` brought the window (screenshot: the row with v3 and ✕); its close left the app running with no window, as found. Marko to try OFF and ✕.
