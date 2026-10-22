@@ -65,3 +65,8 @@ The screenshot (Desktop, 22.10.2026 06.49.26): macOS's notification **"Login Ite
 > when I click! It says nothing. Something is broken with this. Try different styles of plugins. AUvST. Test everything. Trying different ways
 
 **Status:** saved; testing Pianoverse as AU, VST3 and standalone.
+**Findings (22.10.2026, 11:30):** Live outputs to the ADAM (log, 11:13); Live's engine works (Operator 1 kHz test heard).
+Pianoverse 1.0.11 is silent inside Live in all three formats (AU, VST2, VST3; meters 0.0, fresh instances too), with an
+empty MODEL list; the standalone Pianoverse.app shows Black Pearl B200 and every preset. Content complete (14 parts, 45 GB),
+both arm64, no folder permission denied. Suspect: Little Snitch denies Live the network, so the plug-in's licence check
+fails inside Live only. Reading the rules needs root: asked Marko.
