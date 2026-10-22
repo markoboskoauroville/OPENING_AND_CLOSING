@@ -61,3 +61,7 @@ The screenshot (Desktop, 22.10.2026 06.49.26): macOS's notification **"Login Ite
 > I have SoundSource application. Please use that application for everything. Switching, testing if output is there, you are able to see who meters running. Because this SoundSource application is the best application, please work with it. I need to troubleshoot. You need to troubleshoot. Please troubleshoot why the result doesn't give sound. I'm playing now the sound source, and sound source doesn't show anything. Yes, so my Ableton output is dead completely. Please troubleshoot this and save save save save save save save me me me me me me me
 
 **Status:** saved; troubleshooting Live's silence now.
+
+> when I click! It says nothing. Something is broken with this. Try different styles of plugins. AUvST. Test everything. Trying different ways
+
+**Status:** saved; testing Pianoverse as AU, VST3 and standalone.
