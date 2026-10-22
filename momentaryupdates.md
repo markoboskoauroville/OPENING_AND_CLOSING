@@ -30,3 +30,12 @@ The first row of the window is SPEECHIFY SPLASH CLOSER ON / OFF with ✕ at the 
 The screenshot (Desktop, 22.10.2026 06.49.26): macOS's notification **"Login Item Added — "Speechify Voice AI.app" will open automatically when you log in. You can manage this in Login Items & Extensions."** The app becomes "Automatic Closer (Mantra)", a list of things it closes; the first two: Speechify's Home window (as before) and that banner, closed three seconds after it appears.
 
 **Status:** v4 22.10.2026. Folder and GitHub repository renamed AUTOMATIC_CLOSER; the app is "Automatic Closer (Mantra)", the old .app removed, the star's row points at it (STAR_SWIFT rows.json and ~/.config/star-rows.json). Its window lists the two things, each with its own ON / OFF and its last close, CLOSE THEM NOW, QUIT at the bottom right. Verified: restarted pid 767 → 2239 (`open -j … --args --login`); the real "Login Item Added" banner for Speechify, up since 06:49, was closed at 06:54:13 (the window shows it); a test login item (Calculator) brought a new banner, gone about 3 s later; the test login item deleted again. Marko to see it close the next real one.
+
+## 22.10.2026: Opening and Closing; Chrome opens in the chosen profiles
+
+> "At the moment let's go back to my start menu. And closing application, we need to now call it opening and closing. Opening part is going to set up automatically applications for the startup. Now I have issue with my Chrome browser. When I open the Chrome browser, I want it to be in particular profile. You need to build that in the app. There will be setting Chrome profile, and I'm going to choose there which profile I want when Chrome is opened for the first time to be active. And then every time I start Chrome, it's in that profile no matter what was the last profile. In the app I can also select multiple profiles, so when I start Chrome it will open a few Chrome windows with those profiles. So it's also multiple selectors." (Marko, 22.10.2026)
+
+1. The app is renamed for both halves: opening and closing. The opening half sets up applications as they start.
+2. CHROME PROFILES in the app: a list of Chrome's profiles, several can be chosen. Every start of Chrome opens one window per chosen profile, whatever profile was last used.
+
+**Status:** asked.
