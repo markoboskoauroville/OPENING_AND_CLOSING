@@ -38,4 +38,4 @@ The screenshot (Desktop, 22.10.2026 06.49.26): macOS's notification **"Login Ite
 1. The app is renamed for both halves: opening and closing. The opening half sets up applications as they start.
 2. CHROME PROFILES in the app: a list of Chrome's profiles, several can be chosen. Every start of Chrome opens one window per chosen profile, whatever profile was last used.
 
-**Status:** asked.
+**Status:** v5 22.10.2026, built and running (pid 2239 → 11486), folder and repo OPENING_AND_CLOSING, the star's row renamed. The window shows OPENING (CHROME PROFILES: all 23 of Chrome's profiles, a tap gives the next number, 1 in front) above CLOSING (screenshot). Not yet tried with Chrome closed and opened: Marko ticks his profiles, quits Chrome and starts it.

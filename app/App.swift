@@ -1,17 +1,21 @@
-// Automatic Closer (Mantra): closes the windows and banners that come up by themselves, each through its own
-// accessibility close. The things it closes are the THINGS list below, one row each in the window:
+// Opening and Closing (Mantra): sets up applications as they open, and closes the windows and banners that come up by
+// themselves, each through its own accessibility close.
+// OPENING (v5, Marko 22.10.2026: "Opening part is going to set up automatically applications for the startup"):
+//   Chrome opens in the profiles he ticked, one window each, the first ticked in front (Chrome.swift).
+// CLOSING, the THINGS list below, one row each in the window:
 //   1. Speechify's Home window: Speechify's menu-bar app opens it at every launch and has no setting to stop it; closed
 //      at start and for 30 s after every launch of Speechify, so the app lives in the menu bar only.
 //   2. The "Login Item Added" banner of macOS ("… will open automatically when you log in"): closed 3 s after it shows
 //      (Marko, 22.10.2026).
 // Born 13.10.2026 as Speechify Splash Closer (MANTRA_STAR apps/speechify.lua, "no more Lua, only Swift"); renamed
-// Automatic Closer in v4 (22.10.2026: "rename this app to Automatic Closer, and then it will close more things").
+// Automatic Closer in v4 (22.10.2026: "rename this app to Automatic Closer, and then it will close more things"), and
+// Opening and Closing in v5 the same day ("we need to now call it opening and closing").
 import SwiftUI
 import AppKit
 import ApplicationServices
 
-let VERSION = 4
-let RELEASES = "https://github.com/markoboskoauroville/AUTOMATIC_CLOSER/releases/latest"
+let VERSION = 5
+let RELEASES = "https://github.com/markoboskoauroville/OPENING_AND_CLOSING/releases/latest"
 let SPEECHIFY = "com.cliffweitzman.speechifymacagent"
 let NOTIFICATIONS = "com.apple.notificationcenterui"
 let WATCH_FOR: TimeInterval = 30
@@ -44,8 +48,23 @@ final class Closer: ObservableObject {
     private var hunt: Timer?
     private var bannerWatch: Timer?
     private var seen: [String: Date] = [:]           // a banner's text → when it was first seen
+    // OPENING: Chrome's profiles, the ticked ones in the order they were ticked (the first opens in front)
+    @Published var chromeOn = UserDefaults.standard.object(forKey: "on.chrome") as? Bool ?? true
+    @Published var chosen: [String] = UserDefaults.standard.stringArray(forKey: "chromeProfiles") ?? []
+    @Published var profiles = ChromeOpener.profiles()
+    @Published var chromeSaid = ""
     init() {
         for t in THINGS { on[t.id] = UserDefaults.standard.object(forKey: "on." + t.id) as? Bool ?? true }
+        // Chrome closed: its Local State is made ready for the next start; Chrome started: the missing windows opened
+        NSWorkspace.shared.notificationCenter.addObserver(forName: NSWorkspace.didTerminateApplicationNotification, object: nil, queue: .main) { [weak self] n in
+            if (n.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication)?.bundleIdentifier == CHROME {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 1) { self?.prepareChrome() }
+            }
+        }
+        NSWorkspace.shared.notificationCenter.addObserver(forName: NSWorkspace.didLaunchApplicationNotification, object: nil, queue: .main) { [weak self] n in
+            if (n.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication)?.bundleIdentifier == CHROME { self?.chromeStarted() }
+        }
+        prepareChrome()
         // at login (the star passes --login) no Accessibility dialog: the window says it when he opens it
         _ = AXIsProcessTrustedWithOptions([kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: !CommandLine.arguments.contains("--login")] as CFDictionary)
         NSWorkspace.shared.notificationCenter.addObserver(forName: NSWorkspace.didLaunchApplicationNotification, object: nil, queue: .main) { [weak self] n in
@@ -57,6 +76,30 @@ final class Closer: ObservableObject {
         huntStart()                                   // at start: the splash may be up already
     }
     func set(_ id: String, _ v: Bool) { on[id] = v; UserDefaults.standard.set(v, forKey: "on." + id) }
+
+    // ---- OPENING: Chrome
+    func setChrome(_ v: Bool) { chromeOn = v; UserDefaults.standard.set(v, forKey: "on.chrome"); prepareChrome() }
+    func tick(_ dir: String) {
+        if let i = chosen.firstIndex(of: dir) { chosen.remove(at: i) } else { chosen.append(dir) }
+        UserDefaults.standard.set(chosen, forKey: "chromeProfiles")
+        prepareChrome()
+    }
+    func prepareChrome() {
+        guard chromeOn, !chosen.isEmpty else { return }
+        if ChromeOpener.running { chromeSaid = "Chrome is open: the choice is set when it closes"; return }
+        chromeSaid = ChromeOpener.prepare(chosen) ? "ready: the next start opens \(chosen.count) profile\(chosen.count == 1 ? "" : "s")" : "Chrome's Local State could not be written"
+    }
+    private func chromeStarted() {
+        guard chromeOn, !chosen.isEmpty else { return }
+        // Chrome brings its windows back over a few seconds: look at 4 s and again at 9 s, open what is still missing
+        for delay in [4.0, 9.0] {
+            DispatchQueue.main.asyncAfter(deadline: .now() + delay) { [weak self] in
+                guard let self = self, ChromeOpener.running else { return }
+                let n = ChromeOpener.completeWindows(self.chosen)
+                if n > 0 { self.chromeSaid = "opened \(n) missing profile window\(n == 1 ? "" : "s")"; self.last["chrome"] = Date() }
+            }
+        }
+    }
 
     // 1. Speechify's Home window: its standard windows, through their close buttons
     @discardableResult func closeSpeechify() -> Int {
@@ -122,6 +165,7 @@ final class Closer: ObservableObject {
     // OFF (19.10.2026): the watching stops, then the app quits
     func off() {
         hunt?.invalidate(); hunt = nil; bannerWatch?.invalidate(); bannerWatch = nil
+        prepareChrome()
         NSWorkspace.shared.notificationCenter.removeObserver(self)
         NSApp.terminate(nil)
     }
@@ -161,13 +205,43 @@ struct CloserView: View {
             // the first row: the closer ON / OFF, ✕ at the far right (Marko, 19.10.2026: "In the top of every user
             // interface, there will now be an on/off switch"). Running is ON; OFF stops the watching and quits.
             HStack(spacing: 0) {
-                Text("AUTOMATIC CLOSER").font(.system(size: 10, weight: .bold, design: .monospaced)).foregroundColor(GREY).padding(.trailing, 6)
+                Text("OPENING AND CLOSING").font(.system(size: 10, weight: .bold, design: .monospaced)).foregroundColor(GREY).padding(.trailing, 6)
                 Word(text: "ON", on: true) {}
                 Word(text: "OFF", on: false) { c.off() }
                 Spacer()
                 Text("v\(VERSION)").font(.system(size: 11, design: .monospaced)).foregroundColor(GREY).padding(.trailing, 8)
                 CloseX()
             }.padding(.trailing, -14).padding(.top, -10)
+            // OPENING: Chrome's profiles, ticked in the order they open (Marko: "it's also multiple selectors")
+            Text("OPENING").font(.system(size: 10, weight: .bold, design: .monospaced)).foregroundColor(GREY)
+            VStack(alignment: .leading, spacing: 4) {
+                HStack(spacing: 0) {
+                    Text("CHROME PROFILES").font(.system(size: 11, weight: .bold, design: .monospaced)).foregroundColor(.white)
+                    Spacer()
+                    Word(text: "ON", on: c.chromeOn) { c.setChrome(true) }
+                    Word(text: "OFF", on: !c.chromeOn, color: GREY) { c.setChrome(false) }
+                }
+                Text("every start of Chrome opens a window for each ticked profile; 1 is in front · " + (c.chromeSaid.isEmpty ? (c.chosen.isEmpty ? "none ticked" : "\(c.chosen.count) ticked") : c.chromeSaid))
+                    .font(.system(size: 11, design: .monospaced)).foregroundColor(GREY).fixedSize(horizontal: false, vertical: true)
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 0) {
+                        ForEach(c.profiles) { p in
+                            let n = c.chosen.firstIndex(of: p.id).map { $0 + 1 }
+                            HStack(spacing: 8) {
+                                Text(n.map { "\($0)" } ?? "·").font(.system(size: 12, weight: .bold, design: .monospaced))
+                                    .foregroundColor(n == nil ? GREY : INK).frame(width: 22, height: 22)
+                                    .background(RoundedRectangle(cornerRadius: 5).fill(n == nil ? Color.clear : GREEN))
+                                    .overlay(RoundedRectangle(cornerRadius: 5).stroke(n == nil ? GREY : GREEN, lineWidth: 1))
+                                Text(p.name).font(.system(size: 12, weight: .bold, design: .monospaced)).foregroundColor(n == nil ? .white : GREEN)
+                                Text(p.email).font(.system(size: 11, design: .monospaced)).foregroundColor(GREY).lineLimit(1)
+                                Spacer()
+                            }
+                            .padding(.vertical, 3).contentShape(Rectangle()).onTapGesture { c.tick(p.id) }
+                        }
+                    }
+                }.frame(height: 230)
+            }
+            Text("CLOSING").font(.system(size: 10, weight: .bold, design: .monospaced)).foregroundColor(GREY).padding(.top, 4)
             // the things it closes, each with its own ON / OFF and the time it last closed one
             ForEach(THINGS) { t in
                 VStack(alignment: .leading, spacing: 4) {
@@ -178,7 +252,7 @@ struct CloserView: View {
                         Word(text: "OFF", on: c.on[t.id] != true, color: GREY) { c.set(t.id, false) }
                     }
                     Text(t.how + " · " + (c.last[t.id].map { "last closed " + DateFormatter.localizedString(from: $0, dateStyle: .none, timeStyle: .medium) } ?? "none closed yet"))
-                        .font(.system(size: 11, design: .monospaced)).foregroundColor(GREY)
+                        .font(.system(size: 11, design: .monospaced)).foregroundColor(GREY).fixedSize(horizontal: false, vertical: true)
                 }
             }
             HStack {
@@ -186,7 +260,7 @@ struct CloserView: View {
                 Text(c.said).font(.system(size: 11, design: .monospaced)).foregroundColor(GREY)
             }
             if !c.trusted {
-                Text("Accessibility: not allowed yet. System Settings → Privacy & Security → Accessibility → Automatic Closer (Mantra) on.")
+                Text("Accessibility: not allowed yet. System Settings → Privacy & Security → Accessibility → Opening and Closing (Mantra) on.")
                     .font(.system(size: 11)).foregroundColor(AMBER).fixedSize(horizontal: false, vertical: true)
             }
             HStack {
@@ -218,10 +292,10 @@ final class Delegate: NSObject, NSApplicationDelegate {
     }
 }
 
-@main struct AutomaticCloser: App {
+@main struct OpeningAndClosing: App {
     @NSApplicationDelegateAdaptor(Delegate.self) var delegate
     @StateObject var closer = Closer()
     var body: some Scene {
-        WindowGroup("Automatic Closer (Mantra)") { CloserView(c: closer) }.windowResizability(.contentSize)
+        WindowGroup("Opening and Closing (Mantra)") { CloserView(c: closer) }.windowResizability(.contentSize)
     }
 }
