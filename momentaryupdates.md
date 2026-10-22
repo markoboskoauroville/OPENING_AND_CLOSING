@@ -55,3 +55,9 @@ The screenshot (Desktop, 22.10.2026 06.49.26): macOS's notification **"Login Ite
 > also for start and closing in this opening and closing mantra application, you need to collapse all this application and all this section. It's too long text, so if I want to work with Chrome, I click Chrome and then I have options. If I want to work with Spotify, I have Spotify and I have options. If I want to work with Ableton Live, I have Ableton Live and I click on it. It's like a folder opening and collapsing. Please make this user interface easy to see at a glance and fast without too much text and what user needs to do. He opens and then focuses on the details. Please fix it it's a tree like in the registry on Windows
 
 **Status:** saved; v7: one row per application (Chrome, Ableton Live, Speechify, macOS banners), a disclosure triangle opens its options, short words.
+
+## 22.10.2026: SoundSource for everything; Live's output is dead
+
+> I have SoundSource application. Please use that application for everything. Switching, testing if output is there, you are able to see who meters running. Because this SoundSource application is the best application, please work with it. I need to troubleshoot. You need to troubleshoot. Please troubleshoot why the result doesn't give sound. I'm playing now the sound source, and sound source doesn't show anything. Yes, so my Ableton output is dead completely. Please troubleshoot this and save save save save save save save me me me me me me me
+
+**Status:** saved; troubleshooting Live's silence now.
