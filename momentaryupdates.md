@@ -70,3 +70,7 @@ Pianoverse 1.0.11 is silent inside Live in all three formats (AU, VST2, VST3; me
 empty MODEL list; the standalone Pianoverse.app shows Black Pearl B200 and every preset. Content complete (14 parts, 45 GB),
 both arm64, no folder permission denied. Suspect: Little Snitch denies Live the network, so the plug-in's licence check
 fails inside Live only. Reading the rules needs root: asked Marko.
+
+> I'm not allowing Ableton to go on the internet. That's forbidden. Every model you need to download. Different ways work through standalone piano universe to get some basic model for piano sounds. Don't use Ableton Live itself to go on the internet. That's forbidden by purpose
+
+**Status:** saved; Live stays offline, Little Snitch untouched. Live's MIDI goes over the IAC bus to the standalone Pianoverse, which plays on the ADAM.
