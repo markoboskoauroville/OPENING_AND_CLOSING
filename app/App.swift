@@ -2,6 +2,7 @@
 // themselves, each through its own accessibility close.
 // OPENING (v5, Marko 22.10.2026: "Opening part is going to set up automatically applications for the startup"):
 //   Chrome opens in the profiles he ticked, one window each, the first ticked in front (Chrome.swift).
+//   Ableton Live opens in the Arrangement View (v6, Ableton.swift; "switching to the right view is mandatory").
 // CLOSING, the THINGS list below, one row each in the window:
 //   1. Speechify's Home window: Speechify's menu-bar app opens it at every launch and has no setting to stop it; closed
 //      at start and for 30 s after every launch of Speechify, so the app lives in the menu bar only.
@@ -14,7 +15,7 @@ import SwiftUI
 import AppKit
 import ApplicationServices
 
-let VERSION = 5
+let VERSION = 6
 let RELEASES = "https://github.com/markoboskoauroville/OPENING_AND_CLOSING/releases/latest"
 let SPEECHIFY = "com.cliffweitzman.speechifymacagent"
 let NOTIFICATIONS = "com.apple.notificationcenterui"
@@ -53,6 +54,9 @@ final class Closer: ObservableObject {
     @Published var chosen: [String] = UserDefaults.standard.stringArray(forKey: "chromeProfiles") ?? []
     @Published var profiles = ChromeOpener.profiles()
     @Published var chromeSaid = ""
+    // OPENING: Ableton Live in the Arrangement View
+    @Published var liveOn = UserDefaults.standard.object(forKey: "on.live") as? Bool ?? true
+    @Published var liveSaid = ""
     init() {
         for t in THINGS { on[t.id] = UserDefaults.standard.object(forKey: "on." + t.id) as? Bool ?? true }
         // Chrome closed: its Local State is made ready for the next start; Chrome started: the missing windows opened
@@ -62,7 +66,9 @@ final class Closer: ObservableObject {
             }
         }
         NSWorkspace.shared.notificationCenter.addObserver(forName: NSWorkspace.didLaunchApplicationNotification, object: nil, queue: .main) { [weak self] n in
-            if (n.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication)?.bundleIdentifier == CHROME { self?.chromeStarted() }
+            let id = (n.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication)?.bundleIdentifier
+            if id == CHROME { self?.chromeStarted() }
+            if id == LIVE { self?.liveStarted() }
         }
         prepareChrome()
         // at login (the star passes --login) no Accessibility dialog: the window says it when he opens it
@@ -99,6 +105,31 @@ final class Closer: ObservableObject {
                 if n > 0 { self.chromeSaid = "opened \(n) missing profile window\(n == 1 ? "" : "s")"; self.last["chrome"] = Date() }
             }
         }
+    }
+
+    // ---- OPENING: Ableton Live in the Arrangement View
+    func setLive(_ v: Bool) { liveOn = v; UserDefaults.standard.set(v, forKey: "on.live"); if v { liveStarted() } }
+    private func liveStarted() {
+        guard liveOn, !NSRunningApplication.runningApplications(withBundleIdentifier: LIVE).isEmpty else { return }
+        liveSaid = "Live is starting: waiting for AbletonOSC"
+        // asked every 2 s for up to 4 minutes (a big set loads slowly); answered, it is asked again at 3 s and 8 s,
+        // because the set Live opens brings its own view
+        let until = Date().addingTimeInterval(240)
+        func attempt() {
+            DispatchQueue.global().async {
+                let ok = LiveView.arranger()
+                DispatchQueue.main.async { [weak self] in
+                    guard let self = self, !NSRunningApplication.runningApplications(withBundleIdentifier: LIVE).isEmpty else { return }
+                    if ok {
+                        for d in [3.0, 8.0] { DispatchQueue.main.asyncAfter(deadline: .now() + d) { DispatchQueue.global().async { _ = LiveView.arranger() } } }
+                        self.liveSaid = "switched to Arrangement"; self.last["live"] = Date()
+                    } else if Date() < until {
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 2) { attempt() }
+                    } else { self.liveSaid = "AbletonOSC did not answer: is it on in Live's Link, Tempo & MIDI?" }
+                }
+            }
+        }
+        attempt()
     }
 
     // 1. Speechify's Home window: its standard windows, through their close buttons
@@ -240,6 +271,16 @@ struct CloserView: View {
                         }
                     }
                 }.frame(height: 230)
+            }
+            VStack(alignment: .leading, spacing: 4) {
+                HStack(spacing: 0) {
+                    Text("ABLETON LIVE IN ARRANGEMENT VIEW").font(.system(size: 11, weight: .bold, design: .monospaced)).foregroundColor(.white)
+                    Spacer()
+                    Word(text: "ON", on: c.liveOn) { c.setLive(true) }
+                    Word(text: "OFF", on: !c.liveOn, color: GREY) { c.setLive(false) }
+                }
+                Text("every start of Live ends in the Arrangement View, never Session · " + (c.liveSaid.isEmpty ? "waiting for Live to start" : c.liveSaid) + (c.last["live"].map { " " + DateFormatter.localizedString(from: $0, dateStyle: .none, timeStyle: .medium) } ?? ""))
+                    .font(.system(size: 11, design: .monospaced)).foregroundColor(GREY).fixedSize(horizontal: false, vertical: true)
             }
             Text("CLOSING").font(.system(size: 10, weight: .bold, design: .monospaced)).foregroundColor(GREY).padding(.top, 4)
             // the things it closes, each with its own ON / OFF and the time it last closed one

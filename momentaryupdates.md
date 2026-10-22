@@ -39,3 +39,13 @@ The screenshot (Desktop, 22.10.2026 06.49.26): macOS's notification **"Login Ite
 2. CHROME PROFILES in the app: a list of Chrome's profiles, several can be chosen. Every start of Chrome opens one window per chosen profile, whatever profile was last used.
 
 **Status:** v5 22.10.2026, built and running (pid 2239 → 11486), folder and repo OPENING_AND_CLOSING, the star's row renamed. The window shows OPENING (CHROME PROFILES: all 23 of Chrome's profiles, a tap gives the next number, 1 in front) above CLOSING (screenshot). Not yet tried with Chrome closed and opened: Marko ticks his profiles, quits Chrome and starts it.
+
+## 22.10.2026: Ableton Live opens in the Arrangement View, on the ADAM, with a sound test
+
+> everything you do always do in arrangement view. Never do in session view, the second view with the horizontal lines. Always switch to that one. And make my when my application starts switch to that view automatically. Please, I have application in the start menu starting and closing. So for starting Ableton Live, switching to the right view is mandatory
+
+**Status (v6):** built and installed; Live answers /live/application/view/arranger (AbletonOSC); tested Session → Arrangement on the running Live.
+
+> I don't hear any sound. Please play the Adam audio. You need to play and also put now in this startup action to always when the application starts force it to Adam audio. As a part of starting the application, the sound test should be there to see that sound is output. I don't want to use my Ableton anymore. I need to troubleshoot audio output—that's nonsense in starting application, starting and closing put Ableton Live section. When I can choose my driver for sound, my default view, and I can check sound test on/off. So basically what needs to be done when Ableton is started, that needs to be oscillator oscillate some frequency of 1 kHz for one second and check if it's going through Adam Audio. If it's not, it needs to troubleshoot automatically. Do we understand all this? Please build this
+
+**Status:** saved; v7: an ABLETON LIVE section (driver for sound, default view, sound test ON/OFF); at Live's start: output forced to the chosen device, 1 kHz for 1 s, checked that it reaches the ADAM, troubleshot by itself if not.
