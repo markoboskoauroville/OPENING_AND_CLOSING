@@ -3,3 +3,8 @@
 1. (13.10.2026) An engine with a window must not quit when the window closes: `applicationShouldTerminateAfterLastWindowClosed` returns false, the star's quit is what stops it.
 2. (14.10.2026) At login no Accessibility dialog (`--login` from the star): a prompt at boot is noise; the window says it when opened. No Dock icon (LSUIElement).
 3. (19.10.2026) With LSUIElement the SwiftUI window is an AXDialog and `canBecomeMain` is false while the app is hidden (`open -j`): to start with no window at `--login`, close the titled windows a moment after launch (the WindowGroup makes its window after applicationDidFinishLaunching). The reopen then makes a new one.
+4. (22.10.2026) A macOS notification is closed through Accessibility, not by a click: in Notification Center's window it
+   is an AXButton (subrole AXNotificationCenterBanner / …Alert) with a named action whose string begins "Name:Close";
+   AXUIElementPerformAction with that whole string closes it. An alert (like "Login Item Added") stays until closed,
+   so it is matched by its description and timed from when it was first seen.
+5. (22.10.2026) Renaming an app keeps its Accessibility grant when the bundle id and the signing identity stay the same.

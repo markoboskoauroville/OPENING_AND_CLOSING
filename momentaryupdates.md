@@ -29,4 +29,4 @@ The first row of the window is SPEECHIFY SPLASH CLOSER ON / OFF with ✕ at the 
 
 The screenshot (Desktop, 22.10.2026 06.49.26): macOS's notification **"Login Item Added — "Speechify Voice AI.app" will open automatically when you log in. You can manage this in Login Items & Extensions."** The app becomes "Automatic Closer (Mantra)", a list of things it closes; the first two: Speechify's Home window (as before) and that banner, closed three seconds after it appears.
 
-**Status:** in progress.
+**Status:** v4 22.10.2026. Folder and GitHub repository renamed AUTOMATIC_CLOSER; the app is "Automatic Closer (Mantra)", the old .app removed, the star's row points at it (STAR_SWIFT rows.json and ~/.config/star-rows.json). Its window lists the two things, each with its own ON / OFF and its last close, CLOSE THEM NOW, QUIT at the bottom right. Verified: restarted pid 767 → 2239 (`open -j … --args --login`); the real "Login Item Added" banner for Speechify, up since 06:49, was closed at 06:54:13 (the window shows it); a test login item (Calculator) brought a new banner, gone about 3 s later; the test login item deleted again. Marko to see it close the next real one.

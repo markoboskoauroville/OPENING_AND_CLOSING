@@ -1,70 +1,136 @@
-// Speechify Splash Closer (Mantra): Speechify's menu-bar app opens its Home window at every launch and has no setting
-// to stop it. This closes that window through its accessibility close button: at start, and for 30 s after every
-// launch of Speechify, so the app lives in the menu bar only. Replaces MANTRA_STAR apps/speechify.lua (Marko,
-// 13.10.2026: "no more Lua, only Swift"). The window shows the last close and a CLOSE IT NOW. v2 (14.10.2026): no Dock icon,
-// silent at login (Star (Mantra) v4 opens it hidden).
+// Automatic Closer (Mantra): closes the windows and banners that come up by themselves, each through its own
+// accessibility close. The things it closes are the THINGS list below, one row each in the window:
+//   1. Speechify's Home window: Speechify's menu-bar app opens it at every launch and has no setting to stop it; closed
+//      at start and for 30 s after every launch of Speechify, so the app lives in the menu bar only.
+//   2. The "Login Item Added" banner of macOS ("… will open automatically when you log in"): closed 3 s after it shows
+//      (Marko, 22.10.2026).
+// Born 13.10.2026 as Speechify Splash Closer (MANTRA_STAR apps/speechify.lua, "no more Lua, only Swift"); renamed
+// Automatic Closer in v4 (22.10.2026: "rename this app to Automatic Closer, and then it will close more things").
 import SwiftUI
 import AppKit
 import ApplicationServices
 
-let VERSION = 3
-let RELEASES = "https://github.com/markoboskoauroville/SPEECHIFY_SPLASH_CLOSER/releases/latest"
-let BUNDLE = "com.cliffweitzman.speechifymacagent"
+let VERSION = 4
+let RELEASES = "https://github.com/markoboskoauroville/AUTOMATIC_CLOSER/releases/latest"
+let SPEECHIFY = "com.cliffweitzman.speechifymacagent"
+let NOTIFICATIONS = "com.apple.notificationcenterui"
 let WATCH_FOR: TimeInterval = 30
+let BANNER_AFTER: TimeInterval = 3
 
 let GREEN = Color(red: 0x33/255, green: 0xD1/255, blue: 0x7A/255)
 let GREY = Color(red: 0x7A/255, green: 0x80/255, blue: 0x87/255)
 let AMBER = Color(red: 0xE8/255, green: 0xA3/255, blue: 0x3D/255)
+let RED = Color(red: 0xE5/255, green: 0x48/255, blue: 0x4D/255)
 let INK = Color(red: 0x0B/255, green: 0x0D/255, blue: 0x10/255)
 
 func attr(_ el: AXUIElement, _ n: String) -> AnyObject? { var v: AnyObject?; return AXUIElementCopyAttributeValue(el, n as CFString, &v) == .success ? v : nil }
+func children(_ el: AXUIElement) -> [AXUIElement] { attr(el, kAXChildrenAttribute) as? [AXUIElement] ?? [] }
+func actions(_ el: AXUIElement) -> [String] { var a: CFArray?; AXUIElementCopyActionNames(el, &a); return a as? [String] ?? [] }
+
+// one thing the closer closes: its row in the window, its own ON / OFF (kept in UserDefaults), when it last closed
+struct Thing: Identifiable {
+    let id: String, name: String, how: String
+}
+let THINGS = [
+    Thing(id: "speechify", name: "SPEECHIFY'S HOME WINDOW", how: "closed within 30 s of every Speechify launch"),
+    Thing(id: "loginitem", name: "\"LOGIN ITEM ADDED\" BANNER", how: "closed 3 s after it shows"),
+]
 
 final class Closer: ObservableObject {
-    @Published var last: Date?
+    @Published var last: [String: Date] = [:]
+    @Published var on: [String: Bool] = [:]
     @Published var trusted = AXIsProcessTrusted()
     @Published var said = ""
     private var hunt: Timer?
+    private var bannerWatch: Timer?
+    private var seen: [String: Date] = [:]           // a banner's text → when it was first seen
     init() {
-        // v2: at login (the star passes --login) no Accessibility dialog: the window says it when he opens it
+        for t in THINGS { on[t.id] = UserDefaults.standard.object(forKey: "on." + t.id) as? Bool ?? true }
+        // at login (the star passes --login) no Accessibility dialog: the window says it when he opens it
         _ = AXIsProcessTrustedWithOptions([kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: !CommandLine.arguments.contains("--login")] as CFDictionary)
         NSWorkspace.shared.notificationCenter.addObserver(forName: NSWorkspace.didLaunchApplicationNotification, object: nil, queue: .main) { [weak self] n in
-            if (n.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication)?.bundleIdentifier == BUNDLE { self?.huntStart() }
+            if (n.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication)?.bundleIdentifier == SPEECHIFY { self?.huntStart() }
         }
         Timer.scheduledTimer(withTimeInterval: 2, repeats: true) { [weak self] _ in self?.trusted = AXIsProcessTrusted() }
+        // banners make no event of their own: Notification Center is looked at every second (a few AX calls)
+        bannerWatch = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [weak self] _ in self?.banners() }
         huntStart()                                   // at start: the splash may be up already
     }
-    @discardableResult func close() -> Int {
+    func set(_ id: String, _ v: Bool) { on[id] = v; UserDefaults.standard.set(v, forKey: "on." + id) }
+
+    // 1. Speechify's Home window: its standard windows, through their close buttons
+    @discardableResult func closeSpeechify() -> Int {
         var n = 0
-        for app in NSRunningApplication.runningApplications(withBundleIdentifier: BUNDLE) {
+        for app in NSRunningApplication.runningApplications(withBundleIdentifier: SPEECHIFY) {
             for w in attr(AXUIElementCreateApplication(app.processIdentifier), kAXWindowsAttribute) as? [AXUIElement] ?? [] {
                 guard (attr(w, kAXSubroleAttribute) as? String) == kAXStandardWindowSubrole,
                       let b = attr(w, kAXCloseButtonAttribute), CFGetTypeID(b) == AXUIElementGetTypeID() else { continue }
                 if AXUIElementPerformAction(b as! AXUIElement, kAXPressAction as CFString) == .success { n += 1 }
             }
         }
-        if n > 0 { last = Date() }
+        if n > 0 { last["speechify"] = Date() }
         return n
-    }
-    // OFF (19.10.2026): the watching stops, then the app quits
-    func off() {
-        hunt?.invalidate(); hunt = nil
-        NSWorkspace.shared.notificationCenter.removeObserver(self)
-        NSApp.terminate(nil)
     }
     func huntStart() {
         hunt?.invalidate()
+        guard on["speechify"] == true else { return }
         let until = Date().addingTimeInterval(WATCH_FOR)
         hunt = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { [weak self] t in
             guard let self = self else { t.invalidate(); return }
-            if self.close() > 0 || Date() > until { t.invalidate() }
+            if self.closeSpeechify() > 0 || Date() > until { t.invalidate() }
         }
+    }
+
+    // 2. macOS banners. Each notification is an AXButton (subrole AXNotificationCenterBanner or …Alert) in Notification
+    // Center's window; its description is "<sender>, <title>, <body>" and it carries a named action "Name:Close…".
+    // A banner the closer knows is closed BANNER_AFTER seconds after it was first seen (now = true: at once).
+    static func isLoginItem(_ desc: String) -> Bool {
+        desc.hasPrefix("Login Items,") || desc.contains("Login Item Added") || desc.contains("Background Items Added")
+    }
+    func notifications() -> [(AXUIElement, String)] {
+        var found: [(AXUIElement, String)] = []
+        func walk(_ e: AXUIElement, _ depth: Int) {
+            if let sub = attr(e, kAXSubroleAttribute) as? String, sub.hasPrefix("AXNotificationCenter") {
+                found.append((e, attr(e, kAXDescriptionAttribute) as? String ?? "")); return
+            }
+            if depth < 8 { children(e).forEach { walk($0, depth + 1) } }
+        }
+        for app in NSRunningApplication.runningApplications(withBundleIdentifier: NOTIFICATIONS) {
+            for w in attr(AXUIElementCreateApplication(app.processIdentifier), kAXWindowsAttribute) as? [AXUIElement] ?? [] { walk(w, 0) }
+        }
+        return found
+    }
+    @discardableResult func banners(now: Bool = false) -> Int {
+        guard trusted, on["loginitem"] == true else { seen.removeAll(); return 0 }
+        var n = 0, still: [String: Date] = [:]
+        for (el, desc) in notifications() where Closer.isLoginItem(desc) {
+            let first = seen[desc] ?? Date()
+            still[desc] = first
+            guard now || Date().timeIntervalSince(first) >= BANNER_AFTER,
+                  let close = actions(el).first(where: { $0.hasPrefix("Name:Close") }) else { continue }
+            if AXUIElementPerformAction(el, close as CFString) == .success { n += 1; still[desc] = nil }
+        }
+        seen = still
+        if n > 0 { last["loginitem"] = Date() }
+        return n
+    }
+
+    func closeNow() -> String {
+        let n = (on["speechify"] == true ? closeSpeechify() : 0) + banners(now: true)
+        return n > 0 ? "closed \(n)" : "nothing to close"
+    }
+    // OFF (19.10.2026): the watching stops, then the app quits
+    func off() {
+        hunt?.invalidate(); hunt = nil; bannerWatch?.invalidate(); bannerWatch = nil
+        NSWorkspace.shared.notificationCenter.removeObserver(self)
+        NSApp.terminate(nil)
     }
 }
 
 struct Word: View {
-    let text: String; let on: Bool; let action: () -> Void
+    let text: String; let on: Bool; var color: Color = GREEN; let action: () -> Void
     var body: some View {
-        Text(text).font(.system(size: 13, weight: .bold, design: .monospaced)).foregroundColor(on ? GREEN : GREY)
+        Text(text).font(.system(size: 13, weight: .bold, design: .monospaced)).foregroundColor(on ? color : GREY)
             .padding(.horizontal, 6).padding(.vertical, 4).contentShape(Rectangle()).onTapGesture(perform: action)
     }
 }
@@ -95,33 +161,42 @@ struct CloserView: View {
             // the first row: the closer ON / OFF, ✕ at the far right (Marko, 19.10.2026: "In the top of every user
             // interface, there will now be an on/off switch"). Running is ON; OFF stops the watching and quits.
             HStack(spacing: 0) {
-                Text("SPEECHIFY SPLASH CLOSER").font(.system(size: 10, weight: .bold, design: .monospaced)).foregroundColor(GREY).padding(.trailing, 6)
+                Text("AUTOMATIC CLOSER").font(.system(size: 10, weight: .bold, design: .monospaced)).foregroundColor(GREY).padding(.trailing, 6)
                 Word(text: "ON", on: true) {}
                 Word(text: "OFF", on: false) { c.off() }
                 Spacer()
                 Text("v\(VERSION)").font(.system(size: 11, design: .monospaced)).foregroundColor(GREY).padding(.trailing, 8)
                 CloseX()
             }.padding(.trailing, -14).padding(.top, -10)
-            HStack {
-                Text("SPEECHIFY'S HOME WINDOW").font(.system(size: 10, weight: .bold, design: .monospaced)).foregroundColor(GREY)
-                Spacer()
-                Text("CLOSED AT LAUNCH").font(.system(size: 15, weight: .bold, design: .monospaced)).foregroundColor(GREEN)
+            // the things it closes, each with its own ON / OFF and the time it last closed one
+            ForEach(THINGS) { t in
+                VStack(alignment: .leading, spacing: 4) {
+                    HStack(spacing: 0) {
+                        Text(t.name).font(.system(size: 11, weight: .bold, design: .monospaced)).foregroundColor(.white)
+                        Spacer()
+                        Word(text: "ON", on: c.on[t.id] == true) { c.set(t.id, true); if t.id == "speechify" { c.huntStart() } }
+                        Word(text: "OFF", on: c.on[t.id] != true, color: GREY) { c.set(t.id, false) }
+                    }
+                    Text(t.how + " · " + (c.last[t.id].map { "last closed " + DateFormatter.localizedString(from: $0, dateStyle: .none, timeStyle: .medium) } ?? "none closed yet"))
+                        .font(.system(size: 11, design: .monospaced)).foregroundColor(GREY)
+                }
             }
-            Text(c.last.map { "Last closed at " + DateFormatter.localizedString(from: $0, dateStyle: .none, timeStyle: .medium) } ?? "No window closed yet")
-                .font(.system(size: 12, design: .monospaced)).foregroundColor(.white)
             HStack {
-                Word(text: "CLOSE IT NOW", on: false) { c.said = c.close() > 0 ? "closed" : "Speechify has no window open" }
+                Word(text: "CLOSE THEM NOW", on: false) { c.said = c.closeNow() }
                 Text(c.said).font(.system(size: 11, design: .monospaced)).foregroundColor(GREY)
             }
             if !c.trusted {
-                Text("Accessibility: not allowed yet. System Settings → Privacy & Security → Accessibility → Speechify Splash Closer (Mantra) on.")
+                Text("Accessibility: not allowed yet. System Settings → Privacy & Security → Accessibility → Automatic Closer (Mantra) on.")
                     .font(.system(size: 11)).foregroundColor(AMBER).fixedSize(horizontal: false, vertical: true)
             }
-            Text("Watches every launch of Speechify and closes its Home window within 30 s; the app stays in the menu bar.")
-                .font(.system(size: 11)).foregroundColor(GREY).fixedSize(horizontal: false, vertical: true)
-            HStack { Spacer(); Text("v\(VERSION)").font(.system(size: 11, design: .monospaced)).foregroundColor(GREY).onTapGesture { NSWorkspace.shared.open(URL(string: RELEASES)!) } }
+            HStack {
+                Text("v\(VERSION)").font(.system(size: 11, design: .monospaced)).foregroundColor(GREY).onTapGesture { NSWorkspace.shared.open(URL(string: RELEASES)!) }
+                Spacer()
+                // QUIT at the bottom right of every window (MANTRA_MANIFEST swift-apps.md, 20.10.2026)
+                Word(text: "QUIT", on: true, color: RED) { c.off() }
+            }
         }
-        .padding(24).frame(width: 440).background(INK).preferredColorScheme(.dark)
+        .padding(24).frame(width: 460).background(INK).preferredColorScheme(.dark)
     }
 }
 
@@ -143,10 +218,10 @@ final class Delegate: NSObject, NSApplicationDelegate {
     }
 }
 
-@main struct SpeechifySplashCloser: App {
+@main struct AutomaticCloser: App {
     @NSApplicationDelegateAdaptor(Delegate.self) var delegate
     @StateObject var closer = Closer()
     var body: some Scene {
-        WindowGroup("Speechify Splash Closer (Mantra)") { CloserView(c: closer) }.windowResizability(.contentSize)
+        WindowGroup("Automatic Closer (Mantra)") { CloserView(c: closer) }.windowResizability(.contentSize)
     }
 }
