@@ -8,3 +8,8 @@
    AXUIElementPerformAction with that whole string closes it. An alert (like "Login Item Added") stays until closed,
    so it is matched by its description and timed from when it was first seen.
 5. (22.10.2026) Renaming an app keeps its Accessibility grant when the bundle id and the signing identity stay the same.
+
+## 22.10.2026: Live's view through AbletonOSC, not the menu
+Live's View menu has only "Toggle Arrangement/Session View": a toggle cannot be trusted to land on Arrangement. The
+AbletonOSC handler `/live/application/view/arranger` (show_view + focus_view "Arranger") answers whether it is visible,
+so the app knows it worked. AbletonOSC answers on UDP 11001; the app binds it only while asking.

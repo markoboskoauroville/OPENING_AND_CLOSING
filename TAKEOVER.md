@@ -19,3 +19,9 @@
   State is written only while Chrome is not running (Chrome rewrites it on quit), at the app's start, one second after
   Chrome quits, on every tick and at OFF. Repo renamed twice on 22.10.2026: SPEECHIFY_SPLASH_CLOSER → AUTOMATIC_CLOSER →
   OPENING_AND_CLOSING (GitHub redirects the old names).
+
+## 22.10.2026: next, v7 (requests in momentaryupdates.md, word for word)
+- The window as a tree: one row per application (Chrome, Ableton Live, Speechify, banners), a triangle opens its options.
+- ABLETON LIVE: output device (default the ADAM), default view, sound test ON/OFF: at Live's start 1 kHz for 1 s,
+  checked (Live's Log.txt "Output Device", SoundSource's meters by screenshot), troubleshot by itself.
+- Live never online (MANTRA_MANIFEST modules/ableton-live-audio.md).

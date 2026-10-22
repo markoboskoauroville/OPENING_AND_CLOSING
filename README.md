@@ -10,6 +10,8 @@ banners that come up by themselves, each through its own accessibility close, on
 |---|---|
 | **Chrome profiles** (Marko, 22.10.2026: "every time I start Chrome, it's in that profile no matter what was the last profile ... it's also multiple selectors") | Every Chrome profile is listed; a tap ticks it and gives it the next number (1 opens in front). While Chrome is closed, its `Local State` gets `profile.last_used` = 1 and `profile.last_active_profiles` = every ticked one (a copy of the file as it was is kept once as `Local State.before-opening-and-closing`); 4 s and 9 s after Chrome starts, every ticked profile without a window gets one (`open -na "Google Chrome" --args --profile-directory=…`), known by the profile name in brackets at the end of the window titles. |
 
+| **Ableton Live in Arrangement View** (v6, Marko 22.10.2026: "for starting Ableton Live, switching to the right view is mandatory") | At every start of Live, `/live/application/view/arranger` goes to AbletonOSC (UDP 11000, answer on 11001) every 2 s until it answers (up to 4 min), then again at 3 s and 8 s, because the set brings its own view. Tested: Session → Arrangement on the running Live. |
+
 ## Closing
 
 
