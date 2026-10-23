@@ -82,3 +82,9 @@ fails inside Live only. Reading the rules needs root: asked Marko.
 (The screenshot: macOS's banner "Disk Not Ejected Properly — Eject “NO NAME” before disconnecting or turning it off.")
 
 **Status:** done in v7 (23.10.2026): row 3 of CLOSING, its own ON / OFF; installed and running (old pid 777, v6 since 05:33, replaced by pid 90564). Tested with a banner of the same title and text: up at 2.5 s, gone at 4.0 s.
+
+## 23.10.2026: folders
+
+> Please add a feature to this application to collapse its categories like a folder, so they don't take much space in the user interface. Closing is a special folder. Opening is a special folder, and inside opening, Chrome profiles are also folders. Please fix it.
+
+**Status:** saved; v8: OPENING and CLOSING are folders, and inside OPENING, Chrome profiles (and Ableton Live) are folders too; each opens and closes with a click on its triangle, the state kept.
