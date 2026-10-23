@@ -19,6 +19,7 @@ banners that come up by themselves, each through its own accessibility close, on
 |---|---|
 | Speechify's Home window (Speechify's menu-bar app opens it at every launch and has no setting to stop it) | at its own start and within 30 s of every launch of Speechify, so Speechify lives in the menu bar only |
 | macOS's **"Login Item Added"** banner ("… will open automatically when you log in. You can manage this in Login Items & Extensions.") | 3 s after it shows (Marko, 22.10.2026) |
+| macOS's **"Disk Not Ejected Properly"** banner ("Eject “NO NAME” before disconnecting or turning it off.") | 3 s after it shows (v7, Marko, 23.10.2026). Tested: a banner with the same title and text was up at 2.5 s and gone at 4.0 s (macOS alone hides banners after about 5 s). |
 
 - Installed as `/Applications/Opening and Closing (Mantra).app`, signed "Mantra Apps"; built by `./build.sh`.
 - The star (Star (Mantra).app) opens it, row "Opening and Closing" under Mac. The first row of its window is OPENING AND

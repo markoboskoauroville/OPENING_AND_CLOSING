@@ -81,4 +81,4 @@ fails inside Live only. Reading the rules needs root: asked Marko.
 
 (The screenshot: macOS's banner "Disk Not Ejected Properly — Eject “NO NAME” before disconnecting or turning it off.")
 
-**Status:** saved; a new row for it, closed 3 s after it shows, as "Login Item Added".
+**Status:** done in v7 (23.10.2026): row 3 of CLOSING, its own ON / OFF; installed and running (old pid 777, v6 since 05:33, replaced by pid 90564). Tested with a banner of the same title and text: up at 2.5 s, gone at 4.0 s.

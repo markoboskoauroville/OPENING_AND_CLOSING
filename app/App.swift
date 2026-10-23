@@ -8,6 +8,8 @@
 //      at start and for 30 s after every launch of Speechify, so the app lives in the menu bar only.
 //   2. The "Login Item Added" banner of macOS ("… will open automatically when you log in"): closed 3 s after it shows
 //      (Marko, 22.10.2026).
+//   3. The "Disk Not Ejected Properly" banner (Eject "NO NAME" before disconnecting…): closed 3 s after it shows
+//      (v7, Marko, 23.10.2026: "Close this dialog after 3 seconds automatically").
 // Born 13.10.2026 as Speechify Splash Closer (MANTRA_STAR apps/speechify.lua, "no more Lua, only Swift"); renamed
 // Automatic Closer in v4 (22.10.2026: "rename this app to Automatic Closer, and then it will close more things"), and
 // Opening and Closing in v5 the same day ("we need to now call it opening and closing").
@@ -15,7 +17,7 @@ import SwiftUI
 import AppKit
 import ApplicationServices
 
-let VERSION = 6
+let VERSION = 7
 let RELEASES = "https://github.com/markoboskoauroville/OPENING_AND_CLOSING/releases/latest"
 let SPEECHIFY = "com.cliffweitzman.speechifymacagent"
 let NOTIFICATIONS = "com.apple.notificationcenterui"
@@ -39,6 +41,7 @@ struct Thing: Identifiable {
 let THINGS = [
     Thing(id: "speechify", name: "SPEECHIFY'S HOME WINDOW", how: "closed within 30 s of every Speechify launch"),
     Thing(id: "loginitem", name: "\"LOGIN ITEM ADDED\" BANNER", how: "closed 3 s after it shows"),
+    Thing(id: "diskeject", name: "\"DISK NOT EJECTED PROPERLY\" BANNER", how: "closed 3 s after it shows"),
 ]
 
 final class Closer: ObservableObject {
@@ -158,8 +161,11 @@ final class Closer: ObservableObject {
     // 2. macOS banners. Each notification is an AXButton (subrole AXNotificationCenterBanner or …Alert) in Notification
     // Center's window; its description is "<sender>, <title>, <body>" and it carries a named action "Name:Close…".
     // A banner the closer knows is closed BANNER_AFTER seconds after it was first seen (now = true: at once).
-    static func isLoginItem(_ desc: String) -> Bool {
-        desc.hasPrefix("Login Items,") || desc.contains("Login Item Added") || desc.contains("Background Items Added")
+    // which THINGS row a banner belongs to, by its description (nil: not ours, left alone)
+    static func bannerKind(_ desc: String) -> String? {
+        if desc.hasPrefix("Login Items,") || desc.contains("Login Item Added") || desc.contains("Background Items Added") { return "loginitem" }
+        if desc.contains("Disk Not Ejected Properly") || desc.contains("before disconnecting or turning it off") { return "diskeject" }
+        return nil
     }
     func notifications() -> [(AXUIElement, String)] {
         var found: [(AXUIElement, String)] = []
@@ -175,17 +181,18 @@ final class Closer: ObservableObject {
         return found
     }
     @discardableResult func banners(now: Bool = false) -> Int {
-        guard trusted, on["loginitem"] == true else { seen.removeAll(); return 0 }
-        var n = 0, still: [String: Date] = [:]
-        for (el, desc) in notifications() where Closer.isLoginItem(desc) {
+        guard trusted, on["loginitem"] == true || on["diskeject"] == true else { seen.removeAll(); return 0 }
+        var n = 0, still: [String: Date] = [:], closed: Set<String> = []
+        for (el, desc) in notifications() {
+            guard let kind = Closer.bannerKind(desc), on[kind] == true else { continue }
             let first = seen[desc] ?? Date()
             still[desc] = first
             guard now || Date().timeIntervalSince(first) >= BANNER_AFTER,
                   let close = actions(el).first(where: { $0.hasPrefix("Name:Close") }) else { continue }
-            if AXUIElementPerformAction(el, close as CFString) == .success { n += 1; still[desc] = nil }
+            if AXUIElementPerformAction(el, close as CFString) == .success { n += 1; still[desc] = nil; closed.insert(kind) }
         }
         seen = still
-        if n > 0 { last["loginitem"] = Date() }
+        for k in closed { last[k] = Date() }
         return n
     }
 

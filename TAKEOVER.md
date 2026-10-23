@@ -10,7 +10,7 @@
 - Speechify's bundle id is `com.cliffweitzman.speechifymacagent`; only its windows with subrole AXStandardWindow are closed.
 - Banners: Notification Center (`com.apple.notificationcenterui`) is read every second. Each notification is an
   AXButton with subrole AXNotificationCenterBanner or AXNotificationCenterAlert, its description
-  "<sender>, <title>, <body>" (the login one: "Login Items, Login Item Added, …"), and a named action
+  "<sender>, <title>, <body>" (the login one: "Login Items, Login Item Added, …"; the disk one contains "Disk Not Ejected Properly"); `Closer.bannerKind` maps a description to its THINGS row, and each row has its own ON / OFF, and a named action
   "Name:Close\nTarget:0x0\nSelector:(null)", performed after 3 s. A new thing to close is a row in THINGS plus its match.
 - State: each thing's ON / OFF in UserDefaults (`on.<id>`), nothing else on disk.
 - Test without waiting for a real one: `osascript -e 'tell application "System Events" to make login item at end with
