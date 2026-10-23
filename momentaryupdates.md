@@ -74,3 +74,11 @@ fails inside Live only. Reading the rules needs root: asked Marko.
 > I'm not allowing Ableton to go on the internet. That's forbidden. Every model you need to download. Different ways work through standalone piano universe to get some basic model for piano sounds. Don't use Ableton Live itself to go on the internet. That's forbidden by purpose
 
 **Status:** saved; Live stays offline, Little Snitch untouched. Live's MIDI goes over the IAC bus to the standalone Pianoverse, which plays on the ADAM.
+
+## 23.10.2026: "Disk Not Ejected Properly"
+
+> Please add my star app opening and closing. Close this dialog after 3 seconds automatically.
+
+(The screenshot: macOS's banner "Disk Not Ejected Properly — Eject “NO NAME” before disconnecting or turning it off.")
+
+**Status:** saved; a new row for it, closed 3 s after it shows, as "Login Item Added".
