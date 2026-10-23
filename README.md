@@ -30,3 +30,11 @@ banners that come up by themselves, each through its own accessibility close, on
 - Born 13.10.2026 as Speechify Splash Closer from MANTRA_STAR `apps/speechify.lua` (Hammerspoon), when Marko moved
   everything to Swift; Automatic Closer in v4 (22.10.2026: *"rename this app to Automatic Closer, and then it will
   close more things"*), Opening and Closing since v5 the same day (*"we need to now call it opening and closing"*).
+
+## Folders (v8, 23.10.2026)
+
+Marko: *"collapse its categories like a folder, so they don't take much space"*. OPENING and CLOSING are folders, and
+inside OPENING each application is a folder too (Chrome profiles, Ableton Live). A click on the triangle or the name
+opens or closes one; closed, it shows a one-line summary ("1 ticked", "3 of 3 ON"), and its ON / OFF stays on the right.
+The state is kept between starts (UserDefaults `folder.<key>`); first start: OPENING and CLOSING open, the applications
+closed. `--snapshot <dir>` draws the window in three folder states to PNGs and quits (a test that shows no window).

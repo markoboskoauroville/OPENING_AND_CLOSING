@@ -10,6 +10,9 @@
 //      (Marko, 22.10.2026).
 //   3. The "Disk Not Ejected Properly" banner (Eject "NO NAME" before disconnecting…): closed 3 s after it shows
 //      (v7, Marko, 23.10.2026: "Close this dialog after 3 seconds automatically").
+// FOLDERS (v8, Marko 23.10.2026: "collapse its categories like a folder, so they don't take much space"): OPENING
+// and CLOSING are folders, and inside OPENING each application (Chrome profiles, Ableton Live) is a folder too; a
+// click on the triangle or the name opens or closes it, and the state is kept (UserDefaults "folder.<key>").
 // Born 13.10.2026 as Speechify Splash Closer (MANTRA_STAR apps/speechify.lua, "no more Lua, only Swift"); renamed
 // Automatic Closer in v4 (22.10.2026: "rename this app to Automatic Closer, and then it will close more things"), and
 // Opening and Closing in v5 the same day ("we need to now call it opening and closing").
@@ -17,7 +20,7 @@ import SwiftUI
 import AppKit
 import ApplicationServices
 
-let VERSION = 7
+let VERSION = 8
 let RELEASES = "https://github.com/markoboskoauroville/OPENING_AND_CLOSING/releases/latest"
 let SPEECHIFY = "com.cliffweitzman.speechifymacagent"
 let NOTIFICATIONS = "com.apple.notificationcenterui"
@@ -85,6 +88,10 @@ final class Closer: ObservableObject {
         huntStart()                                   // at start: the splash may be up already
     }
     func set(_ id: String, _ v: Bool) { on[id] = v; UserDefaults.standard.set(v, forKey: "on." + id) }
+    // FOLDERS: open or closed, kept between starts; OPENING and CLOSING start open, the applications inside start closed
+    @Published var folders: [String: Bool] = [:]
+    func isOpen(_ k: String) -> Bool { folders[k] ?? (UserDefaults.standard.object(forKey: "folder." + k) as? Bool ?? (k == "opening" || k == "closing")) }
+    func toggle(_ k: String) { let v = !isOpen(k); folders[k] = v; UserDefaults.standard.set(v, forKey: "folder." + k) }
 
     // ---- OPENING: Chrome
     func setChrome(_ v: Bool) { chromeOn = v; UserDefaults.standard.set(v, forKey: "on.chrome"); prepareChrome() }
@@ -236,6 +243,30 @@ struct WindowReader: NSViewRepresentable {
     func updateNSView(_ v: NSView, context: Context) {}
 }
 
+// a folder: ▸ / ▾, its name, a short summary while closed, anything on the right (ON / OFF); the content below when open
+struct Folder<Right: View, Content: View>: View {
+    @ObservedObject var c: Closer
+    let key: String, title: String, summary: String
+    var big = false
+    @ViewBuilder var right: () -> Right
+    @ViewBuilder var content: () -> Content
+    var body: some View {
+        let open = c.isOpen(key)
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(spacing: 6) {
+                HStack(spacing: 6) {
+                    Image(systemName: open ? "chevron.down" : "chevron.right").font(.system(size: 10, weight: .bold)).foregroundColor(GREY).frame(width: 12)
+                    Text(title).font(.system(size: big ? 10 : 11, weight: .bold, design: .monospaced)).foregroundColor(big ? GREY : .white)
+                    if !open { Text(summary).font(.system(size: 11, design: .monospaced)).foregroundColor(GREY).lineLimit(1) }
+                    Spacer()
+                }.contentShape(Rectangle()).onTapGesture { c.toggle(key) }
+                right()
+            }
+            if open { content().padding(.leading, 18) }
+        }
+    }
+}
+
 struct CloserView: View {
     @ObservedObject var c: Closer
     var body: some View {
@@ -250,62 +281,64 @@ struct CloserView: View {
                 Text("v\(VERSION)").font(.system(size: 11, design: .monospaced)).foregroundColor(GREY).padding(.trailing, 8)
                 CloseX()
             }.padding(.trailing, -14).padding(.top, -10)
-            // OPENING: Chrome's profiles, ticked in the order they open (Marko: "it's also multiple selectors")
-            Text("OPENING").font(.system(size: 10, weight: .bold, design: .monospaced)).foregroundColor(GREY)
-            VStack(alignment: .leading, spacing: 4) {
-                HStack(spacing: 0) {
-                    Text("CHROME PROFILES").font(.system(size: 11, weight: .bold, design: .monospaced)).foregroundColor(.white)
-                    Spacer()
-                    Word(text: "ON", on: c.chromeOn) { c.setChrome(true) }
-                    Word(text: "OFF", on: !c.chromeOn, color: GREY) { c.setChrome(false) }
-                }
-                Text("every start of Chrome opens a window for each ticked profile; 1 is in front · " + (c.chromeSaid.isEmpty ? (c.chosen.isEmpty ? "none ticked" : "\(c.chosen.count) ticked") : c.chromeSaid))
-                    .font(.system(size: 11, design: .monospaced)).foregroundColor(GREY).fixedSize(horizontal: false, vertical: true)
-                ScrollView {
-                    VStack(alignment: .leading, spacing: 0) {
-                        ForEach(c.profiles) { p in
-                            let n = c.chosen.firstIndex(of: p.id).map { $0 + 1 }
-                            HStack(spacing: 8) {
-                                Text(n.map { "\($0)" } ?? "·").font(.system(size: 12, weight: .bold, design: .monospaced))
-                                    .foregroundColor(n == nil ? GREY : INK).frame(width: 22, height: 22)
-                                    .background(RoundedRectangle(cornerRadius: 5).fill(n == nil ? Color.clear : GREEN))
-                                    .overlay(RoundedRectangle(cornerRadius: 5).stroke(n == nil ? GREY : GREEN, lineWidth: 1))
-                                Text(p.name).font(.system(size: 12, weight: .bold, design: .monospaced)).foregroundColor(n == nil ? .white : GREEN)
-                                Text(p.email).font(.system(size: 11, design: .monospaced)).foregroundColor(GREY).lineLimit(1)
-                                Spacer()
-                            }
-                            .padding(.vertical, 3).contentShape(Rectangle()).onTapGesture { c.tick(p.id) }
+            // OPENING, a folder: Chrome's profiles and Ableton Live, each a folder of its own
+            Folder(c: c, key: "opening", title: "OPENING", summary: "Chrome \(c.chromeOn ? "ON" : "OFF") · Live \(c.liveOn ? "ON" : "OFF")", big: true, right: { EmptyView() }) {
+                VStack(alignment: .leading, spacing: 10) {
+                    Folder(c: c, key: "chrome", title: "CHROME PROFILES", summary: c.chosen.isEmpty ? "none ticked" : "\(c.chosen.count) ticked", right: {
+                        Word(text: "ON", on: c.chromeOn) { c.setChrome(true) }
+                        Word(text: "OFF", on: !c.chromeOn, color: GREY) { c.setChrome(false) }
+                    }) {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("every start of Chrome opens a window for each ticked profile; 1 is in front · " + (c.chromeSaid.isEmpty ? (c.chosen.isEmpty ? "none ticked" : "\(c.chosen.count) ticked") : c.chromeSaid))
+                                .font(.system(size: 11, design: .monospaced)).foregroundColor(GREY).fixedSize(horizontal: false, vertical: true)
+                            ScrollView {
+                                VStack(alignment: .leading, spacing: 0) {
+                                    ForEach(c.profiles) { p in
+                                        let n = c.chosen.firstIndex(of: p.id).map { $0 + 1 }
+                                        HStack(spacing: 8) {
+                                            Text(n.map { "\($0)" } ?? "·").font(.system(size: 12, weight: .bold, design: .monospaced))
+                                                .foregroundColor(n == nil ? GREY : INK).frame(width: 22, height: 22)
+                                                .background(RoundedRectangle(cornerRadius: 5).fill(n == nil ? Color.clear : GREEN))
+                                                .overlay(RoundedRectangle(cornerRadius: 5).stroke(n == nil ? GREY : GREEN, lineWidth: 1))
+                                            Text(p.name).font(.system(size: 12, weight: .bold, design: .monospaced)).foregroundColor(n == nil ? .white : GREEN)
+                                            Text(p.email).font(.system(size: 11, design: .monospaced)).foregroundColor(GREY).lineLimit(1)
+                                            Spacer()
+                                        }
+                                        .padding(.vertical, 3).contentShape(Rectangle()).onTapGesture { c.tick(p.id) }
+                                    }
+                                }
+                            }.frame(height: 230)
                         }
                     }
-                }.frame(height: 230)
-            }
-            VStack(alignment: .leading, spacing: 4) {
-                HStack(spacing: 0) {
-                    Text("ABLETON LIVE IN ARRANGEMENT VIEW").font(.system(size: 11, weight: .bold, design: .monospaced)).foregroundColor(.white)
-                    Spacer()
-                    Word(text: "ON", on: c.liveOn) { c.setLive(true) }
-                    Word(text: "OFF", on: !c.liveOn, color: GREY) { c.setLive(false) }
-                }
-                Text("every start of Live ends in the Arrangement View, never Session · " + (c.liveSaid.isEmpty ? "waiting for Live to start" : c.liveSaid) + (c.last["live"].map { " " + DateFormatter.localizedString(from: $0, dateStyle: .none, timeStyle: .medium) } ?? ""))
-                    .font(.system(size: 11, design: .monospaced)).foregroundColor(GREY).fixedSize(horizontal: false, vertical: true)
-            }
-            Text("CLOSING").font(.system(size: 10, weight: .bold, design: .monospaced)).foregroundColor(GREY).padding(.top, 4)
-            // the things it closes, each with its own ON / OFF and the time it last closed one
-            ForEach(THINGS) { t in
-                VStack(alignment: .leading, spacing: 4) {
-                    HStack(spacing: 0) {
-                        Text(t.name).font(.system(size: 11, weight: .bold, design: .monospaced)).foregroundColor(.white)
-                        Spacer()
-                        Word(text: "ON", on: c.on[t.id] == true) { c.set(t.id, true); if t.id == "speechify" { c.huntStart() } }
-                        Word(text: "OFF", on: c.on[t.id] != true, color: GREY) { c.set(t.id, false) }
+                    Folder(c: c, key: "live", title: "ABLETON LIVE IN ARRANGEMENT VIEW", summary: "", right: {
+                        Word(text: "ON", on: c.liveOn) { c.setLive(true) }
+                        Word(text: "OFF", on: !c.liveOn, color: GREY) { c.setLive(false) }
+                    }) {
+                        Text("every start of Live ends in the Arrangement View, never Session · " + (c.liveSaid.isEmpty ? "waiting for Live to start" : c.liveSaid) + (c.last["live"].map { " " + DateFormatter.localizedString(from: $0, dateStyle: .none, timeStyle: .medium) } ?? ""))
+                            .font(.system(size: 11, design: .monospaced)).foregroundColor(GREY).fixedSize(horizontal: false, vertical: true)
                     }
-                    Text(t.how + " · " + (c.last[t.id].map { "last closed " + DateFormatter.localizedString(from: $0, dateStyle: .none, timeStyle: .medium) } ?? "none closed yet"))
-                        .font(.system(size: 11, design: .monospaced)).foregroundColor(GREY).fixedSize(horizontal: false, vertical: true)
                 }
             }
-            HStack {
-                Word(text: "CLOSE THEM NOW", on: false) { c.said = c.closeNow() }
-                Text(c.said).font(.system(size: 11, design: .monospaced)).foregroundColor(GREY)
+            // CLOSING, a folder: the things it closes, each with its own ON / OFF and the time it last closed one
+            Folder(c: c, key: "closing", title: "CLOSING", summary: "\(THINGS.filter { c.on[$0.id] == true }.count) of \(THINGS.count) ON", big: true, right: { EmptyView() }) {
+                VStack(alignment: .leading, spacing: 10) {
+                    ForEach(THINGS) { t in
+                        VStack(alignment: .leading, spacing: 4) {
+                            HStack(spacing: 0) {
+                                Text(t.name).font(.system(size: 11, weight: .bold, design: .monospaced)).foregroundColor(.white)
+                                Spacer()
+                                Word(text: "ON", on: c.on[t.id] == true) { c.set(t.id, true); if t.id == "speechify" { c.huntStart() } }
+                                Word(text: "OFF", on: c.on[t.id] != true, color: GREY) { c.set(t.id, false) }
+                            }
+                            Text(t.how + " · " + (c.last[t.id].map { "last closed " + DateFormatter.localizedString(from: $0, dateStyle: .none, timeStyle: .medium) } ?? "none closed yet"))
+                                .font(.system(size: 11, design: .monospaced)).foregroundColor(GREY).fixedSize(horizontal: false, vertical: true)
+                        }
+                    }
+                    HStack {
+                        Word(text: "CLOSE THEM NOW", on: false) { c.said = c.closeNow() }
+                        Text(c.said).font(.system(size: 11, design: .monospaced)).foregroundColor(GREY)
+                    }
+                }
             }
             if !c.trusted {
                 Text("Accessibility: not allowed yet. System Settings → Privacy & Security → Accessibility → Opening and Closing (Mantra) on.")
@@ -328,6 +361,19 @@ struct CloserView: View {
 final class Delegate: NSObject, NSApplicationDelegate {
     func applicationShouldTerminateAfterLastWindowClosed(_ s: NSApplication) -> Bool { false }
     func applicationDidFinishLaunching(_ n: Notification) {
+        // --snapshot <dir> (for tests, v8): the window drawn to PNGs in three folder states, no window shown, then quit
+        if let i = CommandLine.arguments.firstIndex(of: "--snapshot"), i + 1 < CommandLine.arguments.count {
+            let dir = CommandLine.arguments[i + 1], c = Closer()
+            for (name, f) in [("all-closed", [String: Bool]()), ("top-open", ["opening": true, "closing": true]),
+                              ("all-open", ["opening": true, "closing": true, "chrome": true, "live": true])] {
+                c.folders = ["opening": false, "closing": false, "chrome": false, "live": false].merging(f) { $1 }
+                let r = ImageRenderer(content: CloserView(c: c)); r.scale = 2
+                if let img = r.nsImage, let t = img.tiffRepresentation, let b = NSBitmapImageRep(data: t), let png = b.representation(using: .png, properties: [:]) {
+                    try? png.write(to: URL(fileURLWithPath: dir + "/" + name + ".png"))
+                }
+            }
+            exit(0)
+        }
         if CommandLine.arguments.contains("--login") {
             // the WindowGroup makes its window a moment after launch: close it then
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { NSApp.windows.filter { $0.styleMask.contains(.titled) }.forEach { $0.close() } }

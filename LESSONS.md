@@ -13,3 +13,9 @@
 Live's View menu has only "Toggle Arrangement/Session View": a toggle cannot be trusted to land on Arrangement. The
 AbletonOSC handler `/live/application/view/arranger` (show_view + focus_view "Arranger") answers whether it is visible,
 so the app knows it worked. AbletonOSC answers on UDP 11001; the app binds it only while asking.
+- **Test a SwiftUI window without showing it**: ImageRenderer draws the view to a PNG (`--snapshot`). A ScrollView's
+  content and an NSViewRepresentable (the ✕) do not draw there; everything else does.
+- **The running copy does not update itself**: after build.sh the old process goes on (v6 ran from 05:33 through two
+  builds). Kill it by `pgrep -x OpeningAndClosing` (pgrep -f with the app's brackets matches nothing) and start
+  `open -g -a … --args --login`.
+

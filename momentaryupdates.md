@@ -87,4 +87,4 @@ fails inside Live only. Reading the rules needs root: asked Marko.
 
 > Please add a feature to this application to collapse its categories like a folder, so they don't take much space in the user interface. Closing is a special folder. Opening is a special folder, and inside opening, Chrome profiles are also folders. Please fix it.
 
-**Status:** saved; v8: OPENING and CLOSING are folders, and inside OPENING, Chrome profiles (and Ableton Live) are folders too; each opens and closes with a click on its triangle, the state kept.
+**Status:** done in v8 (23.10.2026 21:47): OPENING and CLOSING folders, Chrome profiles and Ableton Live folders inside OPENING, a summary while closed, the state kept. Checked with `--snapshot` (three states drawn, no window over his work); v8 running (pid 90564 → 91520).
