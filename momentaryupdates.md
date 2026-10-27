@@ -88,3 +88,11 @@ fails inside Live only. Reading the rules needs root: asked Marko.
 > Please add a feature to this application to collapse its categories like a folder, so they don't take much space in the user interface. Closing is a special folder. Opening is a special folder, and inside opening, Chrome profiles are also folders. Please fix it.
 
 **Status:** done in v8 (23.10.2026 21:47): OPENING and CLOSING folders, Chrome profiles and Ableton Live folders inside OPENING, a summary while closed, the state kept. Checked with `--snapshot` (three states drawn, no window over his work); v8 running (pid 90564 → 91520).
+
+## 27.10.2026: onto the Mac's port registry (MANTRA_PORTS v2)
+
+> please do rebuild and restart
+
+**Status:** v9: the Arrangement switch at Live's start asks through the router on 11002 when Ableton Live Actions owns
+11001 (it bound 127.0.0.1:11001 with SO_REUSEADDR beside the owner and could take its answers); only when nobody holds
+11001 does it bind it, on every address, without SO_REUSEADDR. Tested: Live answered through the router.

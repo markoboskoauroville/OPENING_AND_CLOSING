@@ -20,7 +20,7 @@ import SwiftUI
 import AppKit
 import ApplicationServices
 
-let VERSION = 8
+let VERSION = 9
 let RELEASES = "https://github.com/markoboskoauroville/OPENING_AND_CLOSING/releases/latest"
 let SPEECHIFY = "com.cliffweitzman.speechifymacagent"
 let NOTIFICATIONS = "com.apple.notificationcenterui"
