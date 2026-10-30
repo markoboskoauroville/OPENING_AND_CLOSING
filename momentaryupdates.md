@@ -96,3 +96,9 @@ fails inside Live only. Reading the rules needs root: asked Marko.
 **Status:** v9: the Arrangement switch at Live's start asks through the router on 11002 when Ableton Live Actions owns
 11001 (it bound 127.0.0.1:11001 with SO_REUSEADDR beside the owner and could take its answers); only when nobody holds
 11001 does it bind it, on every address, without SO_REUSEADDR. Tested: Live answered through the router.
+
+## 30.10.2026: PERMISSIONS at the top right
+
+> please make this in every application that needs some permission. If permissions are not set, it needs to have text in the top right: "Permissions." Then I click on it, and it opens me directly to my settings page where I need to set permissions.
+
+**Status:** requested 30.10.2026; being built (MANTRA_MANIFEST swift-apps.md, last section).
