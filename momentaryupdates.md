@@ -101,4 +101,4 @@ fails inside Live only. Reading the rules needs root: asked Marko.
 
 > please make this in every application that needs some permission. If permissions are not set, it needs to have text in the top right: "Permissions." Then I click on it, and it opens me directly to my settings page where I need to set permissions.
 
-**Status:** requested 30.10.2026; being built (MANTRA_MANIFEST swift-apps.md, last section).
+**Status:** done in v10 (30.10.2026): PERMISSIONS (amber) on the first row between the spacer and v10/✕ while Accessibility (the only permission it uses) is off; a click asks once and opens Privacy_Accessibility. Re-read every 2 s, redrawn only on change; never asked at --login. Accessibility is allowed on this Mac, so the word is not shown (checked with --snapshot). Restarted quietly (pid 696 → 35643).

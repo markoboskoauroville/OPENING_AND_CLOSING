@@ -13,6 +13,8 @@
 // FOLDERS (v8, Marko 23.10.2026: "collapse its categories like a folder, so they don't take much space"): OPENING
 // and CLOSING are folders, and inside OPENING each application (Chrome profiles, Ableton Live) is a folder too; a
 // click on the triangle or the name opens or closes it, and the state is kept (UserDefaults "folder.<key>").
+// PERMISSIONS (v10, Marko 30.10.2026: "If permissions are not set, it needs to have text in the top right"): the word,
+// amber, on the first row while Accessibility is off; a click opens its page in System Settings (swift-apps.md).
 // Born 13.10.2026 as Speechify Splash Closer (MANTRA_STAR apps/speechify.lua, "no more Lua, only Swift"); renamed
 // Automatic Closer in v4 (22.10.2026: "rename this app to Automatic Closer, and then it will close more things"), and
 // Opening and Closing in v5 the same day ("we need to now call it opening and closing").
@@ -20,7 +22,7 @@ import SwiftUI
 import AppKit
 import ApplicationServices
 
-let VERSION = 9
+let VERSION = 10
 let RELEASES = "https://github.com/markoboskoauroville/OPENING_AND_CLOSING/releases/latest"
 let SPEECHIFY = "com.cliffweitzman.speechifymacagent"
 let NOTIFICATIONS = "com.apple.notificationcenterui"
@@ -82,7 +84,10 @@ final class Closer: ObservableObject {
         NSWorkspace.shared.notificationCenter.addObserver(forName: NSWorkspace.didLaunchApplicationNotification, object: nil, queue: .main) { [weak self] n in
             if (n.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication)?.bundleIdentifier == SPEECHIFY { self?.huntStart() }
         }
-        Timer.scheduledTimer(withTimeInterval: 2, repeats: true) { [weak self] _ in self?.trusted = AXIsProcessTrusted() }
+        // read again every 2 s, published only when it changed (the window redraws only then)
+        Timer.scheduledTimer(withTimeInterval: 2, repeats: true) { [weak self] _ in
+            let t = AXIsProcessTrusted(); if t != self?.trusted { self?.trusted = t }
+        }
         // banners make no event of their own: Notification Center is looked at every second (a few AX calls)
         bannerWatch = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [weak self] _ in self?.banners() }
         huntStart()                                   // at start: the splash may be up already
@@ -216,6 +221,24 @@ final class Closer: ObservableObject {
     }
 }
 
+// the permissions the closer uses: Accessibility only (it reads and presses other apps' windows and banners)
+enum Permissions {
+    static let needed = ["Accessibility"]
+    static func allowed(_ p: String) -> Bool {
+        switch p {
+        case "Accessibility": return AXIsProcessTrusted()
+        default: return true
+        }
+    }
+    static var missing: [String] { needed.filter { !allowed($0) } }
+    // the system's own request once (it puts the app in the list), then the page of the first one missing
+    static func openMissing() {
+        guard let p = missing.first else { return }
+        if p == "Accessibility" { _ = AXIsProcessTrustedWithOptions([kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true] as CFDictionary) }
+        NSWorkspace.shared.open(URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_" + p)!)
+    }
+}
+
 struct Word: View {
     let text: String; let on: Bool; var color: Color = GREEN; let action: () -> Void
     var body: some View {
@@ -278,6 +301,11 @@ struct CloserView: View {
                 Word(text: "ON", on: true) {}
                 Word(text: "OFF", on: false) { c.off() }
                 Spacer()
+                // v10 (Marko, 30.10.2026): a permission missing, PERMISSIONS at the top right; a click opens its page
+                if !c.trusted {
+                    Word(text: "PERMISSIONS", on: true, color: AMBER) { Permissions.openMissing() }
+                        .help("Accessibility is off: this opens its page in System Settings")
+                }
                 Text("v\(VERSION)").font(.system(size: 11, design: .monospaced)).foregroundColor(GREY).padding(.trailing, 8)
                 CloseX()
             }.padding(.trailing, -14).padding(.top, -10)
