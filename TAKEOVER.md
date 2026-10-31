@@ -25,3 +25,5 @@
 - ABLETON LIVE: output device (default the ADAM), default view, sound test ON/OFF: at Live's start 1 kHz for 1 s,
   checked (Live's Log.txt "Output Device", SoundSource's meters by screenshot), troubleshot by itself.
 - Live never online (MANTRA_MANIFEST modules/ableton-live-audio.md).
+
+31.10.2026: v12: TOP on the first row (onTop), AX ids on/off/top/permissions/close, QUIT removed. Restarted with --login (pid 60687 → 40309).

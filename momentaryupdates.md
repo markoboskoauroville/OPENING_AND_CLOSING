@@ -109,4 +109,4 @@ fails inside Live only. Reading the rules needs root: asked Marko.
 
 The first row as in MANTRA_MANIFEST swift-apps.md "The first row of every app: ON OFF … TOP ✕": TOP (green while the window stays above every other window, grey off; UserDefaults `onTop`, applied at launch) beside the ✕, every control an Accessibility button (`off`, `top`, `close`).
 
-**Status:** pending
+**Status:** done, v12 (31.10.2026): TOP (green on, grey off; UserDefaults onTop, applied at launch) on the first row before v12 and the ✕; the first row's words are Accessibility buttons (on, off, top, permissions) and the ✕ (close); the folders' own ON / OFF words carry no id, so a build's press of off can only be the app's OFF. The QUIT at the bottom is gone (No QUIT: OFF is the way out). Checked: --snapshot in its three folder states at the fixed 460 pt width, the first row whole (Accessibility allowed, so no PERMISSIONS shown). Restarted quietly: v11 pid 60687 quit through its menu's Quit (AX), v12 opened with open -g --args --login, pid 40309, no window, no prompt.

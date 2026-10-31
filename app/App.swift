@@ -22,7 +22,7 @@ import SwiftUI
 import AppKit
 import ApplicationServices
 
-let VERSION = 11
+let VERSION = 12
 let RELEASES = "https://github.com/markoboskoauroville/OPENING_AND_CLOSING/releases/latest"
 let SPEECHIFY = "com.cliffweitzman.speechifymacagent"
 let NOTIFICATIONS = "com.apple.notificationcenterui"
@@ -240,10 +240,24 @@ enum Permissions {
 }
 
 struct Word: View {
-    let text: String; let on: Bool; var color: Color = GREEN; let action: () -> Void
+    let text: String; let on: Bool; var color: Color = GREEN; var id: String? = nil; let action: () -> Void
     var body: some View {
-        Text(text).font(.system(size: 13, weight: .bold, design: .monospaced)).foregroundColor(on ? color : GREY)
+        let w = Text(text).font(.system(size: 13, weight: .bold, design: .monospaced)).foregroundColor(on ? color : GREY)
             .padding(.horizontal, 6).padding(.vertical, 4).contentShape(Rectangle()).onTapGesture(perform: action)
+        // v12: a word with an id is an Accessibility button (the first row: on, off, top, permissions)
+        if let id { w.axButton(text.capitalized, id: id, value: on ? "on" : "off", action) } else { w }
+    }
+}
+
+// every control an Accessibility button (MANTRA_MANIFEST swift-apps.md, 31.10.2026)
+extension View {
+    func axButton(_ label: String, id: String, value: String? = nil, _ action: @escaping () -> Void) -> some View {
+        accessibilityElement(children: .ignore)
+            .accessibilityLabel(label)
+            .accessibilityIdentifier(id)
+            .accessibilityValue(value ?? "")
+            .accessibilityAddTraits(.isButton)
+            .accessibilityAction(.default, action)
     }
 }
 
@@ -257,6 +271,7 @@ struct CloseX: View {
             .frame(width: 28, height: 28).contentShape(Rectangle())
             .background(WindowReader { window = $0 })
             .onTapGesture { (window ?? NSApp.keyWindow)?.performClose(nil) }
+            .axButton("Close window", id: "close") { (window ?? NSApp.keyWindow ?? NSApp.windows.first { $0.isVisible })?.performClose(nil) }
             .help("close this window; the closer goes on working")
     }
 }
@@ -292,18 +307,25 @@ struct Folder<Right: View, Content: View>: View {
 
 struct CloserView: View {
     @ObservedObject var c: Closer
+    @AppStorage("onTop") private var onTop = false
+    static func float(_ on: Bool) {
+        for w in NSApp.windows where w.title.hasPrefix("Opening and Closing") { w.level = on ? .floating : .normal }
+    }
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
             // the first row: the closer ON / OFF, ✕ at the far right (Marko, 19.10.2026: "In the top of every user
             // interface, there will now be an on/off switch"). Running is ON; OFF stops the watching and quits.
             HStack(spacing: 0) {
                 Text("OPENING AND CLOSING").font(.system(size: 10, weight: .bold, design: .monospaced)).foregroundColor(GREY).padding(.trailing, 6)
-                Word(text: "ON", on: true) {}
-                Word(text: "OFF", on: false) { c.off() }
+                Word(text: "ON", on: true, id: "on") {}
+                Word(text: "OFF", on: false, id: "off") { DispatchQueue.main.async { c.off() } }
                 Spacer()
+                // v12 (Marko, 31.10.2026: "On, off and top. Please build it in every application."): green = above every window
+                Word(text: "TOP", on: onTop, id: "top") { onTop.toggle(); CloserView.float(onTop) }
+                    .help("Always on top: green, the window stays above every other window")
                 // v10 (Marko, 30.10.2026): a permission missing, PERMISSIONS at the top right; a click opens its page
                 if !c.trusted {
-                    Word(text: "PERMISSIONS", on: true, color: AMBER) { Permissions.openMissing() }
+                    Word(text: "PERMISSIONS", on: true, color: AMBER, id: "permissions") { Permissions.openMissing() }
                         .help("Accessibility is off: this opens its page in System Settings")
                 }
                 Text("v\(VERSION)").font(.system(size: 11, design: .monospaced)).foregroundColor(GREY).padding(.trailing, 8)
@@ -375,11 +397,11 @@ struct CloserView: View {
             HStack {
                 Text("v\(VERSION)").font(.system(size: 11, design: .monospaced)).foregroundColor(GREY).onTapGesture { NSWorkspace.shared.open(URL(string: RELEASES)!) }
                 Spacer()
-                // QUIT at the bottom right of every window (MANTRA_MANIFEST swift-apps.md, 20.10.2026)
-                Word(text: "QUIT", on: true, color: RED) { c.off() }
+                // v12: no QUIT; OFF on the first row is the way out (MANTRA_MANIFEST swift-apps.md "No QUIT", 31.10.2026)
             }
         }
         .padding(24).frame(width: 460).background(INK).preferredColorScheme(.dark)
+        .onAppear { DispatchQueue.main.async { CloserView.float(onTop) } }
     }
 }
 
