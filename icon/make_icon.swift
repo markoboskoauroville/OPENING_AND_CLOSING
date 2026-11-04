@@ -1,41 +1,28 @@
-// The icon, drawn: a window and, over it, a notification banner, each with a red close button, the version under them.
-// Automatic Closer closes both kinds (v4, 22.10.2026).
+// make_icon.swift: the icon is six letters over one picture (Marko 4.11.2026: "I want 6 letters in this icon and one
+// symbolic background, and that's all"). It is made once, for every star app, by STAR_SWIFT/icons6/six_icon.swift and
+// kept beside this file as six_1024.png; this script only hands it to the build, in the form the build asks for:
+//   swift make_icon.swift [version]                -> icon_1024.png (and icon.png when one is there) in this folder
+//   swift make_icon.swift <version> <file.png>      -> that png
+//   swift make_icon.swift <dir.iconset> [version]   -> the ten sizes of an iconset
+// No version is drawn any more: the six letters are the whole icon.
 import AppKit
-let S: CGFloat = 1024
-let version = CommandLine.arguments.count > 1 ? CommandLine.arguments[1] : "1"
-let img = NSImage(size: NSSize(width: S, height: S)); img.lockFocus()
-let ctx = NSGraphicsContext.current!.cgContext
-ctx.addPath(CGPath(roundedRect: CGRect(x: 100, y: 100, width: 824, height: 824), cornerWidth: 180, cornerHeight: 180, transform: nil))
-ctx.setFillColor(NSColor(calibratedRed: 0.04, green: 0.05, blue: 0.06, alpha: 1).cgColor); ctx.fillPath()
-func closeButton(_ b: CGRect) {
-    ctx.setFillColor(NSColor(calibratedRed: 1, green: 0.37, blue: 0.34, alpha: 1).cgColor); ctx.fillEllipse(in: b)
-    let m = b.width * 0.31
-    ctx.setStrokeColor(NSColor(calibratedRed: 0.45, green: 0.05, blue: 0.05, alpha: 1).cgColor); ctx.setLineWidth(b.width * 0.14); ctx.setLineCap(.round)
-    ctx.move(to: CGPoint(x: b.minX + m, y: b.minY + m)); ctx.addLine(to: CGPoint(x: b.maxX - m, y: b.maxY - m))
-    ctx.move(to: CGPoint(x: b.minX + m, y: b.maxY - m)); ctx.addLine(to: CGPoint(x: b.maxX - m, y: b.minY + m)); ctx.strokePath()
+let me = URL(fileURLWithPath: CommandLine.arguments[0]).deletingLastPathComponent()
+let src = me.appendingPathComponent("six_1024.png").path
+let fm = FileManager.default
+func put(_ to: String) { try? fm.removeItem(atPath: to); try! fm.copyItem(atPath: src, toPath: to) }
+func sized(_ px: Int, _ to: String) {
+    let p = Process(); p.launchPath = "/usr/bin/sips"; p.arguments = ["-z", "\(px)", "\(px)", src, "--out", to]
+    p.standardOutput = FileHandle.nullDevice; p.launch(); p.waitUntilExit()
 }
-// the window, behind
-let win = CGRect(x: 190, y: 280, width: 560, height: 440)
-ctx.addPath(CGPath(roundedRect: win, cornerWidth: 34, cornerHeight: 34, transform: nil))
-ctx.setFillColor(NSColor(calibratedWhite: 0.22, alpha: 1).cgColor); ctx.fillPath()
-closeButton(CGRect(x: 222, y: 640, width: 56, height: 56))
-for (i, w) in [CGFloat(380), 300, 340].enumerated() {
-    ctx.addPath(CGPath(roundedRect: CGRect(x: 240, y: 520 - CGFloat(i) * 70, width: w, height: 26), cornerWidth: 13, cornerHeight: 13, transform: nil))
-    ctx.setFillColor(NSColor(calibratedWhite: 0.38, alpha: 1).cgColor); ctx.fillPath()
+let args = Array(CommandLine.arguments.dropFirst())
+if let set = args.first(where: { $0.hasSuffix(".iconset") }) {
+    try? fm.createDirectory(atPath: set, withIntermediateDirectories: true)
+    for (n, p) in [("16x16", 16), ("16x16@2x", 32), ("32x32", 32), ("32x32@2x", 64), ("128x128", 128), ("128x128@2x", 256),
+                   ("256x256", 256), ("256x256@2x", 512), ("512x512", 512), ("512x512@2x", 1024)] { sized(p, "\(set)/icon_\(n).png") }
+} else if let png = args.first(where: { $0.hasSuffix(".png") }) {
+    put(png)
+} else {
+    let cwd = fm.currentDirectoryPath
+    if src != "\(cwd)/icon_1024.png" { put("\(cwd)/icon_1024.png") }
+    if fm.fileExists(atPath: "\(cwd)/icon.png") { put("\(cwd)/icon.png") }
 }
-// the banner, in front at the upper right, as macOS shows it
-let ban = CGRect(x: 400, y: 640, width: 470, height: 170)
-ctx.addPath(CGPath(roundedRect: ban, cornerWidth: 40, cornerHeight: 40, transform: nil))
-ctx.setFillColor(NSColor(calibratedWhite: 0.32, alpha: 1).cgColor); ctx.fillPath()
-ctx.addPath(CGPath(roundedRect: ban, cornerWidth: 40, cornerHeight: 40, transform: nil))
-ctx.setStrokeColor(NSColor(calibratedWhite: 0.5, alpha: 1).cgColor); ctx.setLineWidth(4); ctx.strokePath()
-ctx.addPath(CGPath(roundedRect: CGRect(x: 430, y: 680, width: 90, height: 90), cornerWidth: 20, cornerHeight: 20, transform: nil))
-ctx.setFillColor(NSColor(calibratedWhite: 0.55, alpha: 1).cgColor); ctx.fillPath()
-for (i, w) in [CGFloat(220), 280].enumerated() {
-    ctx.addPath(CGPath(roundedRect: CGRect(x: 545, y: 745 - CGFloat(i) * 50, width: w, height: 22), cornerWidth: 11, cornerHeight: 11, transform: nil))
-    ctx.setFillColor(NSColor(calibratedWhite: 0.7, alpha: 1).cgColor); ctx.fillPath()
-}
-closeButton(CGRect(x: 372, y: 774, width: 64, height: 64))
-("v" + version as NSString).draw(at: NSPoint(x: 170, y: 150), withAttributes: [.font: NSFont.systemFont(ofSize: 92, weight: .semibold), .foregroundColor: NSColor(calibratedWhite: 0.78, alpha: 1)])
-img.unlockFocus()
-try! NSBitmapImageRep(data: img.tiffRepresentation!)!.representation(using: .png, properties: [:])!.write(to: URL(fileURLWithPath: "icon_1024.png"))
