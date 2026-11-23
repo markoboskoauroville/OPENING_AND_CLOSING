@@ -19,3 +19,6 @@ so the app knows it worked. AbletonOSC answers on UDP 11001; the app binds it on
   builds). Kill it by `pgrep -x OpeningAndClosing` (pgrep -f with the app's brackets matches nothing) and start
   `open -g -a … --args --login`.
 
+
+## 23.11.2026: AbletonOSC ports (v13)
+AbletonOSC moved to UDP 11010 (listen) / 11011 (reply) (23.11.2026), Suno Bridge owns 11000. v13 is compiled by GitHub Actions (.github/workflows/build.yml), not on the Mac.

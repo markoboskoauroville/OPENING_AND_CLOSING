@@ -33,7 +33,8 @@ cat > "$APP/Contents/Info.plist" <<PL
 <key>LSUIElement</key><true/>
 </dict></plist>
 PL
-codesign --force -s "Mantra Apps" "$APP"
+codesign --force -s "${SIGN:-Mantra Apps}" "$APP"
+if [ -n "$NO_INSTALL" ]; then echo "built $APP (v$V), not installed"; exit 0; fi
 # the old names go (v4 and v5, 22.10.2026); the bundle id stays speechifysplashcloser, so the Accessibility grant carries over
 rm -rf "/Applications/Speechify Splash Closer (Mantra).app" "/Applications/Automatic Closer (Mantra).app"
 rm -rf "/Applications/$NAME.app"; cp -R "$APP" /Applications/
